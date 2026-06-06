@@ -3,79 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>簡易點餐系統</title>
+    <title>專業點餐系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-        .section { margin-bottom: 20px; }
+        body { padding: 20px; background-color: #f8f9fa; }
+        .container { max-width: 600px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .dish-row { display: flex; align-items: center; margin-bottom: 10px; }
+        .dish-name { flex-grow: 1; }
+        .dish-qty { width: 80px; }
     </style>
 </head>
 <body>
 
-    <h2>請點餐</h2>
+<div class="container">
+    <h3 class="mb-4">餐點選擇</h3>
     <form id="orderForm">
-        <div class="section">
-            <label>主餐選擇：</label><br>
-            <select name="mainMeal" required>
-                <option value="方案A">方案 A</option>
-                <option value="方案B">方案 B</option>
-                <option value="方案C">方案 C</option>
+        <div class="mb-3">
+            <label>選擇方案：</label>
+            <select id="mealType" class="form-select" onchange="updateDropdowns()">
+                <option value="1">單點</option>
+                <option value="2">雙拼</option>
+                <option value="3">三拼</option>
+                <option value="4">四拼</option>
             </select>
         </div>
 
-        <div class="section">
-            <label>配菜 (最多選 3 個)：</label><br>
-            <input type="checkbox" name="sides" value="青菜"> 青菜
-            <input type="checkbox" name="sides" value="豆干"> 豆干
-            <input type="checkbox" name="sides" value="滷蛋"> 滷蛋
-            <input type="checkbox" name="sides" value="泡菜"> 泡菜
+        <div id="dropdownContainer" class="mb-3"></div>
+
+        <div class="mb-3">
+            <label>升級方案：</label>
+            <select name="upgrade" class="form-select">
+                <option value="不升級">不升級</option>
+                <option value="蛋+冷泡茶">蛋+冷泡茶</option>
+                <option value="冷泡茶">冷泡茶</option>
+            </select>
         </div>
 
-        <div class="section">
-            <label>升級方案 (最多選 2 個)：</label><br>
-            <input type="checkbox" name="upgrade" value="加量"> 加量
-            <input type="checkbox" name="upgrade" value="飲品"> 飲品
-            <input type="checkbox" name="upgrade" value="湯品"> 湯品
-        </div>
+        <hr>
+        <h5>單點列表：</h5>
+        <div id="sideList"></div>
 
-        <button type="submit">確認送出</button>
+        <button type="submit" class="btn btn-primary w-100 mt-3">送出訂單</button>
     </form>
+</div>
 
-    <script>
-        // 限制選取數量
-        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const group = this.name;
-                const checked = document.querySelectorAll(`input[name="${group}"]:checked`);
-                const limit = (group === 'sides') ? 3 : 2;
-                if (checked.length > limit) {
-                    alert(`此項目最多只能選 ${limit} 個！`);
-                    this.checked = false;
-                }
-            });
-        });
+<script>
+    const dishes = ["大雞腿便當", "排骨便當", "浦燒鯛魚便當", "超大雞排便當", "滷雞腿便當", "鯖魚便當", "雞排便當", "蝦排便當"];
+    const sideItems = ["美式超大雞排", "蒜大雞腿", "排骨", "鯖魚", "雞排", "蝦排", "荷包蛋", "滷蛋", "白飯", "冷泡茶"];
 
-        // 送出訂單
-        document.getElementById('orderForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const data = {
-                mainMeal: formData.get('mainMeal'),
-                sides: formData.getAll('sides'),
-                upgrade: formData.getAll('upgrade')
-            };
+    // 產生選單
+    function updateDropdowns() {
+        const count = document.getElementById('mealType').value;
+        const container = document.getElementById('dropdownContainer');
+        container.innerHTML = '';
+        for(let i=0; i<count; i++) {
+            let select = `<select name="mainMeal" class="form-select mb-2 main-select" onchange="checkDuplicates()">
+                            <option value="">-- 請選擇主餐 ${i+1} --</option>
+                            ${dishes.map(d => `<option value="${d}">${d}</option>`).join('')}
+                          </select>`;
+            container.innerHTML += select;
+        }
+    }
 
-            // 這裡請替換成你的 Google Apps Script 部署網址
-            const scriptUrl = 'https://script.google.com/macros/s/AKfycbwxyo_n_hczMeGaNd059wuNF7EpNKU2gqJdI32plTmdmNOWz-w2WY6r_9jKDHNNZQla7A/exec';
+    // 防重複邏輯
+    function checkDuplicates() {
+        const selects = document.querySelectorAll('.main-select');
+        const values = Array.from(selects).map(s => s.value).filter(v => v !== "");
+        const unique = new Set(values);
+        if (values.length !== unique.size) {
+            alert("主餐內容不可重複！");
+            event.target.value = "";
+        }
+    }
 
-            fetch(scriptUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify(data)
-            }).then(() => {
-                alert('訂單已送出！');
-                this.reset();
-            });
-        });
-    </script>
+    // 初始化單點列表
+    const sideDiv = document.getElementById('sideList');
+    sideItems.forEach(item => {
+        sideDiv.innerHTML += `
+            <div class="dish-row">
+                <span class="dish-name">${item}</span>
+                <input type="number" name="qty_${item}" class="form-control dish-qty" value="0" min="0">
+            </div>`;
+    });
+
+    // 初次載入
+    updateDropdowns();
+</script>
 </body>
 </html>
