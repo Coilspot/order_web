@@ -62,7 +62,7 @@
         document.getElementById('sideList').innerHTML += `<div class="d-flex mb-1">${s} <input type="number" name="side_${s}" value="0" class="ms-auto w-25 form-control"></div>`;
     });
 
-document.getElementById('orderForm').onsubmit = async (e) => {
+    document.getElementById('orderForm').onsubmit = async (e) => {
     e.preventDefault();
     const now = new Date();
     const orderId = now.getFullYear().toString() + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + "_" + now.getHours().toString().padStart(2,'0') + now.getMinutes().toString().padStart(2,'0') + now.getSeconds().toString().padStart(2,'0');
