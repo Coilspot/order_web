@@ -53,13 +53,25 @@
         const container = document.getElementById('dropdowns_' + id);
         container.innerHTML = '';
         for(let i=0; i<count; i++) {
-            container.innerHTML += `<select class="form-select w-auto"><option>${menu.join('</option><option>')}</option></select><span>便當</span>`;
+            container.innerHTML += `<select class="form-select w-auto" onchange="checkDuplicates(this)"><option>${menu.join('</option><option>')}</option></select><span>便當</span>`;
         }
     }
 
+    // 新增：防重複選擇檢查
+    function checkDuplicates(selectElement) {
+        const container = selectElement.parentElement;
+        const selects = container.querySelectorAll('select.form-select.w-auto');
+        const values = Array.from(selects).map(s => s.value);
+        const unique = new Set(values);
+        if (values.length !== unique.size) {
+            alert("同一個超值組合內，主餐不可重複！");
+            selectElement.value = menu[0]; // 發生重複時重置
+        }
+    }
+    
     // 產生單點
     sides.forEach(s => {
-        document.getElementById('sideList').innerHTML += `<div class="d-flex mb-1">${s} <input type="number" name="side_${s}" value="0" class="ms-auto w-25 form-control"></div>`;
+        document.getElementById('sideList').innerHTML += `<div class="d-flex mb-1">${s} <input type="number" name="side_${s}" value="0" min="0" class="ms-auto w-25 form-control"></div>`;
     });
 
     document.getElementById('orderForm').onsubmit = async (e) => {
