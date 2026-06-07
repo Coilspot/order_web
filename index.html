@@ -57,6 +57,11 @@
         }
     }
 
+    // 產生單點
+    sides.forEach(s => {
+        document.getElementById('sideList').innerHTML += `<div class="d-flex mb-1">${s} <input type="number" name="side_${s}" value="0" class="ms-auto w-25 form-control"></div>`;
+    });
+
 document.getElementById('orderForm').onsubmit = async (e) => {
     e.preventDefault();
     const now = new Date();
@@ -83,7 +88,7 @@ document.getElementById('orderForm').onsubmit = async (e) => {
     const data = { orderId, combos, sidesData };
 
     // 請替換你的 Web App URL
-    const scriptUrl = 'https://script.google.com/macros/s/AKfycbwxyo_n_hczMeGaNd059wuNF7EpNKU2gqJdI32plTmdmNOWz-w2WY6r_9jKDHNNZQla7A/exec';
+    const scriptUrl = 'https://script.google.com/macros/s/你的ID/exec';
 
     try {
         const response = await fetch(scriptUrl, {
