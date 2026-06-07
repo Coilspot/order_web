@@ -57,20 +57,45 @@
         }
     }
 
-    // 產生單點
-    sides.forEach(s => {
-        document.getElementById('sideList').innerHTML += `<div class="d-flex mb-1">${s} <input type="number" name="side_${s}" value="0" class="ms-auto w-25 form-control"></div>`;
+document.getElementById('orderForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const now = new Date();
+    const orderId = now.getFullYear().toString() + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + "_" + now.getHours().toString().padStart(2,'0') + now.getMinutes().toString().padStart(2,'0') + now.getSeconds().toString().padStart(2,'0');
+
+    // 收集組合資料
+    let combos = [];
+    document.querySelectorAll('.combo-box').forEach(box => {
+        let id = box.id.split('_')[1];
+        let items = Array.from(box.querySelectorAll('select.form-select.w-auto')).map(s => s.value);
+        combos.push({
+            type: document.getElementById('type_' + id).value, // 1,2,3,4
+            items: items,
+            upgrade: document.getElementById('upgrade_' + id).value
+        });
     });
 
-    // 送出處理
-    document.getElementById('orderForm').onsubmit = (e) => {
-        e.preventDefault();
-        const now = new Date();
-        const orderId = now.toISOString().replace(/[-T:.Z]/g, '').slice(0, 15).replace(/(\d{8})(\d{6})/, '$1_$2');
-        
-        // 收集所有資料送往 GAS (略)
+    // 收集單點資料
+    let sidesData = {};
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        if(input.value > 0) sidesData[input.name.replace('side_', '')] = input.value;
+    });
+
+    const data = { orderId, combos, sidesData };
+
+    // 請替換你的 Web App URL
+    const scriptUrl = 'https://script.google.com/macros/s/你的ID/exec';
+
+    try {
+        const response = await fetch(scriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify(data)
+        });
         alert('訂單號：' + orderId + ' 已送出！');
-    };
+    } catch (err) {
+        alert('送出失敗');
+    }
+};
     
     addCombo();
 </script>
