@@ -49,11 +49,25 @@
     }
 
     function updateDropdowns(id) {
-        const count = document.getElementById('type_' + id).value;
+        const count = parseInt(document.getElementById('type_' + id).value);
         const container = document.getElementById('dropdowns_' + id);
         container.innerHTML = '';
-        for(let i=0; i<count; i++) {
-            container.innerHTML += `<select class="form-select w-auto" onchange="checkDuplicates(this)"><option>${menu.join('</option><option>')}</option></select><span>便當</span>`;
+        
+        for(let i = 0; i < count; i++) {
+            const select = document.createElement('select');
+            select.className = 'form-select w-auto';
+            // 依序指定預設值 (i=0選第1項, i=1選第2項...)
+            select.innerHTML = menu.map((m, index) => 
+                `<option value="${m}" ${index === i ? 'selected' : ''}>${m}</option>`
+            ).join('');
+            
+            select.onchange = function() { checkDuplicates(this); };
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'd-flex align-items-center gap-2 mb-2';
+            wrapper.appendChild(select);
+            wrapper.innerHTML += '<span>便當</span>';
+            container.appendChild(wrapper);
         }
     }
 
