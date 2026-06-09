@@ -42,7 +42,7 @@
     let comboCount = 0;
     let priceConfig = null; // 用於儲存從試算表抓下來的全球價格設定
     
-    // 💡 請替換為您最新部署的 Web App URL
+    // 💡 請確認此處已替換為您最新部署的 Web App URL
     const scriptUrl = 'https://script.google.com/macros/s/AKfycbwxyo_n_hczMeGaNd059wuNF7EpNKU2gqJdI32plTmdmNOWz-w2WY6r_9jKDHNNZQla7A/exec';
 
     // 頁面初始化：先向後端撈取價目表資料
@@ -110,7 +110,7 @@
             const comboSubtotal = (basePrice + upgradePrice) * qty;
             overallTotal += comboSubtotal;
             
-            // 寫入該組合右下角紅框
+            // 寫入該組合右下角
             const subtotalSpan = document.getElementById('comboPrice_' + id);
             if (subtotalSpan) subtotalSpan.innerText = comboSubtotal;
         });
@@ -190,14 +190,13 @@
                 `<option value="${m}" ${m === targetValue ? 'selected' : ''}>${m}</option>`
             ).join('');
             
-            // 變更主餐時，除了檢查重複，也要重新計算金額（因為「單點組合」會受主餐單價影響）
             select.onchange = function() { 
                 checkDuplicates(this); 
                 calculateTotal();
             };
             container.appendChild(select);
         }
-        calculateTotal(); // 選單渲染完即刻更新一次金額
+        calculateTotal(); 
     }
 
     // 防重複主餐檢查
@@ -239,7 +238,7 @@
                 if(input) input.value = result.sidesData[name];
             }
             
-            calculateTotal(); // 匯入舊訂單完畢，即刻精準重新精算總價
+            calculateTotal(); 
             alert('訂單資料已成功匯入！');
         } catch (err) {
             alert('讀取訂單失敗');
