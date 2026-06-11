@@ -28,11 +28,20 @@
         <hr>
         <h5>單點列表：</h5>
         <div id="sideList" class="mb-4"></div>
+        
         <div class="d-flex justify-content-between align-items-center my-3 p-3 bg-light rounded border fw-bold fs-4 text-danger">
             <span>訂單總金額：</span>
             <span>$<span id="totalPrice">0</span></span>
         </div>
-        <button type="submit" class="btn btn-primary w-100" id="submitBtn">送出訂單</button>
+        
+        <div class="row g-2">
+            <div class="col-8">
+                <button type="submit" class="btn btn-primary w-100" id="submitBtn">送出訂單</button>
+            </div>
+            <div class="col-4">
+                <button type="button" class="btn btn-outline-danger w-100" onclick="clearForm()">清空重設</button>
+            </div>
+        </div>
     </form>
 </div>
 
@@ -45,42 +54,50 @@
     // 💡 請確認此處已替換為您最新部署的 Web App URL
     const scriptUrl = 'https://script.google.com/macros/s/AKfycbwxyo_n_hczMeGaNd059wuNF7EpNKU2gqJdI32plTmdmNOWz-w2WY6r_9jKDHNNZQla7A/exec';
 
-    // 頁面初始化：先向後端撈取價目表資料
+    // 1. 頁面初始化：非同步向後端撈取價目表資料
     async function loadPriceConfig() {
         try {
             const res = await fetch(`${scriptUrl}?getSetup=true`);
             priceConfig = await res.json();
-            renderSidesList(); // 價目表到位後，再渲染下方的單點列表
-            calculateTotal();  // 初始計算
+            updateSidePrices(); // 價目表到位後，僅更新價格文字，不影響使用者已輸入的數量
+            calculateTotal();   // 重新計算總金額
         } catch (err) {
             console.error("無法取得試算表價格設定:", err);
         }
     }
 
-    // 動態渲染下方單點列表（含價格對照）
+    // 2. 動態渲染下方單點列表（畫面載入時立即執行，解決 2 秒延遲問題）
     function renderSidesList() {
         const sideListContainer = document.getElementById('sideList');
-        sideListContainer.innerHTML = ''; // 清空
+        sideListContainer.innerHTML = ''; 
         
         sides.forEach(s => {
-            // 從 GH 欄對照取得單價，若無則預設 0
-            const price = (priceConfig && priceConfig.sidePrices[s]) ? priceConfig.sidePrices[s] : 0;
             sideListContainer.innerHTML += `
                 <div class="d-flex align-items-center mb-2">
                     <span class="fw-bold">${s}</span> 
-                    <span class="ms-auto text-muted me-3">$${price}</span>
+                    <span class="ms-auto text-muted me-3">$<span id="priceText_${s}">0</span></span>
                     <input type="number" name="side_${s}" value="0" min="0" oninput="calculateTotal()" class="w-25 form-control side-input">
                 </div>`;
         });
     }
 
+    // 3. 當後端價格回傳後，單獨更新單點價格標籤
+    function updateSidePrices() {
+        if (!priceConfig || !priceConfig.sidePrices) return;
+        sides.forEach(s => {
+            const price = priceConfig.sidePrices[s] || 0;
+            const priceSpan = document.getElementById(`priceText_${s}`);
+            if (priceSpan) priceSpan.innerText = price;
+        });
+    }
+
     // 即時加總所有金額 (超值組合小計 + 單點小計 = 總金額)
     function calculateTotal() {
-        if (!priceConfig) return; // 價格表尚未載入則不計算
+        if (!priceConfig) return; 
         
         let overallTotal = 0;
         
-        // 1. 計算所有超值組合
+        // 計算所有超值組合
         document.querySelectorAll('.combo-box').forEach(box => {
             const id = box.id.split('_')[1];
             const typeValue = document.getElementById('type_' + id).value;
@@ -90,32 +107,26 @@
             let basePrice = 0;
             
             if (typeValue === "1") {
-                // 選「單點」組合：對照 AB 欄主餐價格
                 const firstSelect = box.querySelector(`#dropdowns_${id} select`);
                 if (firstSelect) {
                     basePrice = priceConfig.singleComboPrices[firstSelect.value] || 0;
                 }
             } else {
-                // 選「雙拼/三拼/四拼」：對照 CD 欄固定價格
                 let typeText = "雙拼";
                 if (typeValue === "3") typeText = "三拼";
                 if (typeValue === "4") typeText = "四拼";
                 basePrice = priceConfig.comboTypePrices[typeText] || 0;
             }
             
-            // 對照 EF 欄升級價
             const upgradePrice = priceConfig.upgradePrices[upgradeValue] || 0;
-            
-            // 組合小計 = (基本底價 + 升級價) * 數量
             const comboSubtotal = (basePrice + upgradePrice) * qty;
             overallTotal += comboSubtotal;
             
-            // 寫入該組合右下角
             const subtotalSpan = document.getElementById('comboPrice_' + id);
             if (subtotalSpan) subtotalSpan.innerText = comboSubtotal;
         });
         
-        // 2. 計算下方所有單點
+        // 計算下方所有單點
         document.querySelectorAll('.side-input').forEach(input => {
             const sName = input.name.replace('side_', '');
             const qty = parseInt(input.value) || 0;
@@ -123,7 +134,6 @@
             overallTotal += (price * qty);
         });
         
-        // 3. 渲染至最下方總金額
         document.getElementById('totalPrice').innerText = overallTotal;
     }
 
@@ -212,6 +222,18 @@
         }
     }
 
+    // 清空按鈕功能（回復網頁初始狀態）
+    function clearForm() {
+        if (confirm("確定要清空目前所有點餐內容並重設嗎？")) {
+            document.getElementById('orderForm').reset();
+            document.getElementById('searchOrderId').value = ''; // 清空查詢舊單欄位
+            document.getElementById('comboContainer').innerHTML = ''; // 清空組合區
+            comboCount = 0;
+            addCombo(); // 重新補回一組預設空白組合
+            calculateTotal(); // 金額歸零
+        }
+    }
+
     // 讀取舊訂單
     async function loadOrder() {
         const orderId = document.getElementById('searchOrderId').value.trim();
@@ -260,25 +282,67 @@
         document.querySelectorAll('.combo-box').forEach(box => {
             let id = box.id.split('_')[1];
             let items = Array.from(box.querySelectorAll('select.form-select.w-auto')).map(s => s.value);
+            
+            // 💡 額外計算當下組合的單價與小計，供後端直接寫入絕對值
+            const typeValue = document.getElementById('type_' + id).value;
+            const qty = parseInt(document.getElementById('qty_' + id).value) || 1;
+            const upgradeValue = document.getElementById('upgrade_' + id).value;
+            
+            let basePrice = 0;
+            if (typeValue === "1") {
+                const firstSelect = box.querySelector(`#dropdowns_${id} select`);
+                if (firstSelect && priceConfig) basePrice = priceConfig.singleComboPrices[firstSelect.value] || 0;
+            } else {
+                let typeText = "雙拼";
+                if (typeValue === "3") typeText = "三拼";
+                if (typeValue === "4") typeText = "四拼";
+                if (priceConfig) basePrice = priceConfig.comboTypePrices[typeText] || 0;
+            }
+            const upgradePrice = priceConfig ? (priceConfig.upgradePrices[upgradeValue] || 0) : 0;
+            const subtotal = (basePrice + upgradePrice) * qty;
+
             combos.push({
-                type: document.getElementById('type_' + id).value,
-                qty: parseInt(document.getElementById('qty_' + id).value) || 1,
+                type: typeValue,
+                qty: qty,
                 items: items,
-                upgrade: document.getElementById('upgrade_' + id).value
+                upgrade: upgradeValue,
+                subtotal: subtotal // 當下算出的組合小計數值
             });
         });
 
         let sidesData = {};
+        let sidesDetails = []; // 💡 新增詳細單點資訊陣列（包含當下單價與小計絕對值）
+        
         document.querySelectorAll('.side-input').forEach(input => {
-            const val = parseInt(input.value);
-            if(val > 0) sidesData[input.name.replace('side_', '')] = val;
+            const name = input.name.replace('side_', '');
+            const val = parseInt(input.value) || 0;
+            if(val > 0) {
+                sidesData[name] = val;
+                const price = priceConfig ? (priceConfig.sidePrices[name] || 0) : 0;
+                sidesDetails.push({
+                    name: name,
+                    qty: val,
+                    price: price,
+                    subtotal: price * val
+                });
+            }
         });
 
         if(combos.length === 0 && Object.keys(sidesData).length === 0) {
             return alert('請至少選擇一項商品再送出！');
         }
 
-        const data = { orderId, combos, sidesData };
+        // 💡 取得畫面上最終計算出的總金額絕對值
+        const totalPrice = parseInt(document.getElementById('totalPrice').innerText) || 0;
+
+        // 封裝完整資料包
+        const data = { 
+            orderId, 
+            combos, 
+            sidesData, 
+            sidesDetails, // 帶有歷史單價的詳細單點
+            totalPrice    // 當下算好的總金額數字
+        };
 
         try {
             await fetch(scriptUrl, {
@@ -299,8 +363,9 @@
     };
     
     // 💡 啟動執行流程
-    loadPriceConfig(); // 1. 先抓取對照價目表
+    renderSidesList(); // 1. 立即渲染單點列表（避免2秒延遲空白）
     addCombo();        // 2. 預設給予第一組空白組合
+    loadPriceConfig(); // 3. 後台默默抓取對照價目表，抓完後自動更新價格
 </script>
 </body>
 </html>
