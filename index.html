@@ -55,13 +55,6 @@
     .btn-query:hover {
       background-color: #e0a800;
     }
-    .combo-price-info {
-      text-align: right;
-    }
-    .combo-unit-price {
-      font-size: 0.9rem;
-      color: #6c757d;
-    }
     .combo-subtotal {
       font-size: 1.1rem;
     }
@@ -125,18 +118,13 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // 已自動保留填入你提供的真實 GAS Web App 網址
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxyo_n_hczMeGaNd059wuNF7EpNKU2gqJdI32plTmdmNOWz-w2WY6r_9jKDHNNZQla7A/exec';
 
-    // 全域變數，用來儲存從後端撈回來的 Setup 配置快照
     let globalSetupData = null;
     let comboCounter = 0;
 
-    // 頁面初始化
     document.addEventListener('DOMContentLoaded', function() {
       fetchSetupConfig();
-      
-      // 綁定按鈕事件
       document.getElementById('btnAddCombo').addEventListener('click', () => {
         addComboCard();
         calculateLiveTotal();
@@ -145,14 +133,12 @@
       document.getElementById('btnSubmitOrder').addEventListener('click', submitOrder);
     });
 
-    // 顯示/隱藏讀取中狀態
     function toggleLoading(show, text = "處理中...") {
       const overlay = document.getElementById('loadingOverlay');
       overlay.innerText = text;
       overlay.style.display = show ? 'flex' : 'none';
     }
 
-    // 從後端 GAS 獲取最新餐點品項與價格
     function fetchSetupConfig() {
       toggleLoading(true, "系統資料載入中，請稍候...");
       fetch(`${SCRIPT_URL}?getSetup=true`)
@@ -162,60 +148,40 @@
             alert(data.error);
             return;
           }
-          
-          // 【關鍵防禦修復】動態建立價格查找物件，預防後端只提供純陣列造成的計算死機
           globalSetupData = data;
-          
           globalSetupData.singleComboPrices = globalSetupData.singleComboPrices || {};
           if (data.singleCombo) {
             data.singleCombo.forEach(d => globalSetupData.singleComboPrices[d.name] = Number(d.price) || 0);
           }
-          
           globalSetupData.sidePrices = globalSetupData.sidePrices || {};
           if (data.side) {
             data.side.forEach(s => globalSetupData.sidePrices[s.name] = Number(s.price) || 0);
           }
-          
           globalSetupData.upgradePrices = globalSetupData.upgradePrices || {};
           if (data.upgrade) {
             data.upgrade.forEach(u => globalSetupData.upgradePrices[u.name] = Number(u.price) || 0);
           }
+          globalSetupData.comboTypePrices = globalSetupData.comboTypePrices || { "單點": 0, "雙拼": 120, "三拼": 125, "四拼": 130 };
           
-          globalSetupData.comboTypePrices = globalSetupData.comboTypePrices || {
-            "單點": 0,
-            "雙拼": 120,
-            "三拼": 125,
-            "四拼": 130
-          };
-          
-          // 渲染單點區域
           renderSideItemsList(data.side);
-          
-          // 預設送出一個空白組合
           addComboCard();
-          
-          // 執行初次即時金額計算
           calculateLiveTotal();
-          
           toggleLoading(false);
         })
         .catch(err => {
           console.error(err);
-          alert("無法取得試算表 Setup 設定，請確認 GAS 網址與權限部署是否正確。");
+          alert("無法取得試算表 Setup 設定");
           toggleLoading(false);
         });
     }
 
-    // 動態渲染下方的純單點加點清單
     function renderSideItemsList(sideList) {
       const container = document.getElementById('sideItemsContainer');
       container.innerHTML = '';
-      
       if (!sideList || sideList.length === 0) {
         container.innerHTML = '<p class="text-muted mb-0">暫無單點品項資料</p>';
         return;
       }
-
       sideList.forEach(item => {
         const row = document.createElement('div');
         row.className = 'side-item-row';
@@ -223,15 +189,11 @@
           <span class="fw-medium text-secondary">${item.name} <span class="text-muted">($${item.price})</span></span>
           <input type="number" class="form-control side-qty-input" data-name="${item.name}" min="0" value="0">
         `;
-        
-        // 當單點數量改變時，即時觸發總金額計算
         row.querySelector('.side-qty-input').addEventListener('input', calculateLiveTotal);
-        
         container.appendChild(row);
       });
     }
 
-    // 新增一組「超值組合」卡片
     function addComboCard(preFillData = null) {
       comboCounter++;
       const id = `combo_${comboCounter}`;
@@ -241,19 +203,11 @@
       card.className = 'card combo-card';
       card.id = id;
 
-      // 產生組合選項 (單點/雙拼/三拼/四拼)
       let typeOptions = '';
-      const defaultTypes = [
-        { value: "1", text: "單點" },
-        { value: "2", text: "雙拼" },
-        { value: "3", text: "三拼" },
-        { value: "4", text: "四拼" }
-      ];
-      defaultTypes.forEach(t => {
+      [{value:"1", text:"單點"},{value:"2", text:"雙拼"},{value:"3", text:"三拼"},{value:"4", text:"四拼"}].forEach(t => {
         typeOptions += `<option value="${t.value}">${t.text}</option>`;
       });
 
-      // 產生升級選項
       let upgradeOptions = '';
       globalSetupData.upgrade.forEach(u => {
         upgradeOptions += `<option value="${u.name}">${u.name}</option>`;
@@ -284,10 +238,7 @@
 
         <div class="d-flex justify-content-between align-items-center">
           <button type="button" class="btn btn-danger btn-sm fw-bold btn-delete-combo">刪除此組合</button>
-          <div class="combo-price-info">
-            <div class="combo-unit-price fw-medium">單價: $0</div>
-            <div class="text-danger fw-bold combo-subtotal">小計: $0</div>
-          </div>
+          <div class="text-danger fw-bold combo-subtotal">小計: $0</div>
         </div>
       `;
 
@@ -298,7 +249,6 @@
       const upgradeSelect = card.querySelector('.combo-upgrade-select');
       const dishesDiv = card.querySelector(`#${id}_dishes`);
 
-      // 監聽組合欄位變動 -> 即時計算金額
       typeSelect.addEventListener('change', function() {
         renderDishDropdowns(this.value, dishesDiv);
         calculateLiveTotal();
@@ -306,20 +256,16 @@
       qtyInput.addEventListener('input', calculateLiveTotal);
       upgradeSelect.addEventListener('change', calculateLiveTotal);
 
-      // 綁定刪除按鈕
       card.querySelector('.btn-delete-combo').addEventListener('click', function() {
         card.remove();
-        calculateLiveTotal(); // 刪除卡片後要重新扣除金額
+        calculateLiveTotal();
       });
 
-      // 如果有舊資料要帶入
       if (preFillData) {
         typeSelect.value = preFillData.type;
         qtyInput.value = preFillData.qty;
         upgradeSelect.value = preFillData.upgrade;
-        
         renderDishDropdowns(preFillData.type, dishesDiv);
-        
         const selects = dishesDiv.querySelectorAll('.dish-select');
         preFillData.items.forEach((itemName, idx) => {
           if (selects[idx]) selects[idx].value = itemName;
@@ -329,26 +275,20 @@
       }
     }
 
-    // 依據選擇的拼數（1~4），動態產出主餐 dropdown 組合
     function renderDishDropdowns(typeValue, targetDiv) {
       targetDiv.innerHTML = '';
       const count = parseInt(typeValue) || 1;
-
       let dishOptions = '';
       globalSetupData.singleCombo.forEach(d => {
-        dishOptions += `<option value="${d.name}">${d.name} ($${d.price})</option>`;
+        dishOptions += `<option value="${d.name}">${d.name}</option>`;
       });
 
       for (let i = 0; i < count; i++) {
         const select = document.createElement('select');
         select.className = 'form-select dish-select';
         select.innerHTML = dishOptions;
-        
-        // 切換單個選單主餐時也要即時重新計算金額
         select.addEventListener('change', calculateLiveTotal);
-        
         targetDiv.appendChild(select);
-
         const label = document.createElement('span');
         label.className = 'text-muted fw-medium';
         label.innerText = '便當';
@@ -356,12 +296,9 @@
       }
     }
 
-    // 核心功能：動態即時計算整頁的所有金額與小計
     function calculateLiveTotal() {
       if (!globalSetupData) return;
       let grandTotal = 0;
-
-      // 1. 遍歷計算所有組合卡片
       const comboCards = document.querySelectorAll('.combo-card');
       comboCards.forEach(card => {
         const type = card.querySelector('.combo-type-select').value;
@@ -369,29 +306,19 @@
         const upgradeName = card.querySelector('.combo-upgrade-select').value;
 
         let basePrice = 0;
-        // 單點(1)：取當前選中的那一個主餐的個別定價
         if (type === "1") {
           const firstSelect = card.querySelector('.dish-select');
-          if (firstSelect) {
-            basePrice = globalSetupData.singleComboPrices[firstSelect.value] || 0;
-          }
-        } 
-        // 雙拼/三拼/四拼：取 Setup 裡對應的套餐大盤統一定價
-        else if (type === "2") { basePrice = globalSetupData.comboTypePrices["雙拼"] || 120; } 
+          if (firstSelect) basePrice = globalSetupData.singleComboPrices[firstSelect.value] || 0;
+        } else if (type === "2") { basePrice = globalSetupData.comboTypePrices["雙拼"] || 120; } 
         else if (type === "3") { basePrice = globalSetupData.comboTypePrices["三拼"] || 125; } 
         else if (type === "4") { basePrice = globalSetupData.comboTypePrices["四拼"] || 130; }
 
         const upgradePrice = globalSetupData.upgradePrices[upgradeName] || 0;
-        const unitPrice = basePrice + upgradePrice;
-        const subtotal = unitPrice * qty;
-
-        // 更新此組合卡片的金額與小計欄位
-        card.querySelector('.combo-unit-price').innerText = `單價: $${unitPrice}`;
+        const subtotal = (basePrice + upgradePrice) * qty;
         card.querySelector('.combo-subtotal').innerText = `小計: $${subtotal}`;
         grandTotal += subtotal;
       });
 
-      // 2. 遍歷計算所有加點單點品項
       const sideInputs = document.querySelectorAll('.side-qty-input');
       sideInputs.forEach(input => {
         const name = input.getAttribute('data-name');
@@ -400,143 +327,66 @@
         grandTotal += (unitPrice * qty);
       });
 
-      // 3. 將最終計算總金額塞入下方的總計看板
       document.getElementById('grandTotalDisplay').innerText = grandTotal;
     }
 
-    // 查詢並讀取舊訂單資料
     function loadOldOrder() {
       const orderId = document.getElementById('queryOrderId').value.trim();
-      if (!orderId) {
-        alert("請輸入訂單編號！");
-        return;
-      }
-
+      if (!orderId) { alert("請輸入訂單編號！"); return; }
       toggleLoading(true, "正在搜尋並撈取舊訂單...");
-
       fetch(`${SCRIPT_URL}?orderId=${encodeURIComponent(orderId)}`)
         .then(res => res.json())
         .then(data => {
-          if (data.error) {
-            alert("找不到此訂單，請確認編號是否正確。");
-            toggleLoading(false);
-            return;
-          }
-
+          if (data.error) { alert("找不到此訂單"); toggleLoading(false); return; }
           document.getElementById('comboContainer').innerHTML = '';
-
           if (data.combos && data.combos.length > 0) {
             data.combos.forEach(c => addComboCard(c));
-          } else {
-            addComboCard();
-          }
-
+          } else { addComboCard(); }
           const sideInputs = document.querySelectorAll('.side-qty-input');
           sideInputs.forEach(input => input.value = 0);
-
           if (data.sidesData) {
             for (let name in data.sidesData) {
               const input = document.querySelector(`.side-qty-input[data-name="${name}"]`);
-              if (input) {
-                input.value = data.sidesData[name];
-              }
+              if (input) input.value = data.sidesData[name];
             }
           }
-
-          // 舊資料帶入完畢後，強制重新計算一次最新總金額
           calculateLiveTotal();
-
           toggleLoading(false);
-          alert("舊訂單讀取成功！您現在可以進行修改。");
+          alert("舊訂單讀取成功！");
         })
-        .catch(err => {
-          console.error(err);
-          alert("讀取舊訂單時發生錯誤。");
-          toggleLoading(false);
-        });
+        .catch(err => { console.error(err); alert("讀取失敗"); toggleLoading(false); });
     }
 
-    // 打包並送出訂單
     function submitOrder() {
       let orderId = document.getElementById('queryOrderId').value.trim();
       if (!orderId) {
         const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const date = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const mins = String(now.getMinutes()).padStart(2, '0');
-        const secs = String(now.getSeconds()).padStart(2, '0');
-        orderId = `${year}${month}${date}_${hours}${mins}${secs}`;
+        orderId = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
       }
-
       const combos = [];
-      const comboCards = document.querySelectorAll('.combo-card');
-      
-      comboCards.forEach(card => {
+      document.querySelectorAll('.combo-card').forEach(card => {
         const type = card.querySelector('.combo-type-select').value;
         const qty = parseInt(card.querySelector('.combo-qty-input').value) || 0;
         const upgrade = card.querySelector('.combo-upgrade-select').value;
-        
-        const dishSelects = card.querySelectorAll('.dish-select');
-        const items = [];
-        dishSelects.forEach(sel => {
-          if (sel.value) items.push(sel.value);
-        });
-
-        if (qty > 0 && items.length > 0) {
-          combos.push({
-            type: type,
-            qty: qty,
-            items: items,
-            upgrade: upgrade
-          });
-        }
+        const items = Array.from(card.querySelectorAll('.dish-select')).map(sel => sel.value);
+        if (qty > 0 && items.length > 0) combos.push({type, qty, items, upgrade});
       });
-
       const sidesData = {};
-      const sideInputs = document.querySelectorAll('.side-qty-input');
-      let hasSideOrder = false;
-
-      sideInputs.forEach(input => {
+      document.querySelectorAll('.side-qty-input').forEach(input => {
         const name = input.getAttribute('data-name');
         const qty = parseInt(input.value) || 0;
         sidesData[name] = qty;
-        if (qty > 0) hasSideOrder = true;
       });
-
-      if (combos.length === 0 && !hasSideOrder) {
-        alert("請至少選擇一項餐點或組合再送出！");
-        return;
-      }
-
-      const payload = {
-        orderId: orderId,
-        combos: combos,
-        sidesData: sidesData
-      };
-
-      toggleLoading(true, "訂單送出中，請稍候...");
-
-      fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      })
+      if (combos.length === 0 && Object.values(sidesData).every(v=>v===0)) { alert("請至少選擇一項餐點！"); return; }
+      toggleLoading(true, "訂單送出中...");
+      fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({orderId, combos, sidesData}) })
       .then(res => res.text())
       .then(result => {
         toggleLoading(false);
-        if (result === "成功") {
-          alert(`訂單送出成功！\n您的訂單編號為：${orderId}`);
-          document.getElementById('queryOrderId').value = orderId;
-        } else {
-          alert("伺服器回傳異常：" + result);
-        }
+        if (result === "成功") { alert(`送出成功！編號：${orderId}`); document.getElementById('queryOrderId').value = orderId; }
+        else { alert("異常：" + result); }
       })
-      .catch(err => {
-        console.error(err);
-        alert("網路連線或伺服器發生錯誤，送出失敗。");
-        toggleLoading(false);
-      });
+      .catch(err => { console.error(err); alert("送出失敗"); toggleLoading(false); });
     }
   </script>
 </body>
