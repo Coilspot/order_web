@@ -6,73 +6,19 @@
   <title>點餐系統</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body {
-      background-color: #f8f9fa;
-      padding-bottom: 60px;
-    }
-    .main-container {
-      max-width: 700px;
-      margin: 30px auto;
-    }
-    .query-card {
-      border: 2px solid #ffc107;
-      border-radius: 10px;
-      background-color: #fff;
-    }
-    .combo-card {
-      border: 1px solid #dee2e6;
-      border-radius: 10px;
-      background-color: #fff;
-      padding: 20px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .dish-select-group {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .dish-select {
-      width: auto;
-      min-width: 130px;
-    }
-    .side-item-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid #edf0f2;
-    }
-    .side-qty-input {
-      width: 100px;
-    }
-    .btn-query {
-      background-color: #ffc107;
-      color: #000;
-      font-weight: bold;
-    }
-    .btn-query:hover {
-      background-color: #e0a800;
-    }
-    .combo-subtotal {
-      font-size: 1.1rem;
-    }
-    .total-card {
-      border: 2px dashed #0d6efd;
-      background-color: #f0f7ff;
-    }
-    .loading-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(255,255,255,0.8);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      font-size: 1.2rem;
-      font-weight: bold;
-    }
+    body { background-color: #f8f9fa; padding-bottom: 60px; }
+    .main-container { max-width: 700px; margin: 30px auto; }
+    .query-card { border: 2px solid #ffc107; border-radius: 10px; background-color: #fff; }
+    .combo-card { border: 1px solid #dee2e6; border-radius: 10px; background-color: #fff; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .dish-select-group { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .dish-select { width: auto; min-width: 130px; }
+    .side-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #edf0f2; }
+    .side-qty-input { width: 100px; }
+    .btn-query { background-color: #ffc107; color: #000; font-weight: bold; }
+    .btn-query:hover { background-color: #e0a800; }
+    .combo-subtotal { font-size: 1.1rem; }
+    .total-card { border: 2px dashed #0d6efd; background-color: #f0f7ff; }
+    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; font-size: 1.2rem; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -91,17 +37,18 @@
       </div>
     </div>
 
-    <div id="comboContainer">
-      </div>
+    <div id="comboContainer"></div>
 
-    <button type="button" class="btn btn-secondary w-100 mb-4 fw-bold" id="btnAddCombo">+ 新增組合</button>
+    <div class="d-flex gap-2 mb-4">
+      <button type="button" class="btn btn-secondary flex-grow-1 fw-bold" id="btnAddCombo">+ 新增組合</button>
+      <button type="button" class="btn btn-outline-danger fw-bold" id="btnResetOrder">重置訂單</button>
+    </div>
 
     <hr>
 
     <h5 class="fw-bold my-3 text-dark">單點列表：</h5>
     <div class="card mb-4">
-      <div class="card-body" id="sideItemsContainer">
-        </div>
+      <div class="card-body" id="sideItemsContainer"></div>
     </div>
 
     <div class="card total-card mb-4">
@@ -119,16 +66,13 @@
 
   <script>
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxyo_n_hczMeGaNd059wuNF7EpNKU2gqJdI32plTmdmNOWz-w2WY6r_9jKDHNNZQla7A/exec';
-
     let globalSetupData = null;
     let comboCounter = 0;
 
     document.addEventListener('DOMContentLoaded', function() {
       fetchSetupConfig();
-      document.getElementById('btnAddCombo').addEventListener('click', () => {
-        addComboCard();
-        calculateLiveTotal();
-      });
+      document.getElementById('btnAddCombo').addEventListener('click', () => { addComboCard(); calculateLiveTotal(); });
+      document.getElementById('btnResetOrder').addEventListener('click', resetOrder);
       document.getElementById('btnLoadOrder').addEventListener('click', loadOldOrder);
       document.getElementById('btnSubmitOrder').addEventListener('click', submitOrder);
     });
@@ -139,28 +83,29 @@
       overlay.style.display = show ? 'flex' : 'none';
     }
 
+    function resetOrder() {
+      if(!confirm("確定要清除所有訂單內容嗎？")) return;
+      document.getElementById('comboContainer').innerHTML = '';
+      document.getElementById('queryOrderId').value = '';
+      document.querySelectorAll('.side-qty-input').forEach(input => input.value = 0);
+      comboCounter = 0;
+      addComboCard();
+      calculateLiveTotal();
+    }
+
     function fetchSetupConfig() {
       toggleLoading(true, "系統資料載入中，請稍候...");
       fetch(`${SCRIPT_URL}?getSetup=true`)
         .then(res => res.json())
         .then(data => {
-          if (data.error) {
-            alert(data.error);
-            return;
-          }
+          if (data.error) { alert(data.error); return; }
           globalSetupData = data;
-          globalSetupData.singleComboPrices = globalSetupData.singleComboPrices || {};
-          if (data.singleCombo) {
-            data.singleCombo.forEach(d => globalSetupData.singleComboPrices[d.name] = Number(d.price) || 0);
-          }
-          globalSetupData.sidePrices = globalSetupData.sidePrices || {};
-          if (data.side) {
-            data.side.forEach(s => globalSetupData.sidePrices[s.name] = Number(s.price) || 0);
-          }
-          globalSetupData.upgradePrices = globalSetupData.upgradePrices || {};
-          if (data.upgrade) {
-            data.upgrade.forEach(u => globalSetupData.upgradePrices[u.name] = Number(u.price) || 0);
-          }
+          globalSetupData.singleComboPrices = {};
+          if (data.singleCombo) data.singleCombo.forEach(d => globalSetupData.singleComboPrices[d.name] = Number(d.price) || 0);
+          globalSetupData.sidePrices = {};
+          if (data.side) data.side.forEach(s => globalSetupData.sidePrices[s.name] = Number(s.price) || 0);
+          globalSetupData.upgradePrices = {};
+          if (data.upgrade) data.upgrade.forEach(u => globalSetupData.upgradePrices[u.name] = Number(u.price) || 0);
           globalSetupData.comboTypePrices = globalSetupData.comboTypePrices || { "單點": 0, "雙拼": 120, "三拼": 125, "四拼": 130 };
           
           renderSideItemsList(data.side);
@@ -168,27 +113,17 @@
           calculateLiveTotal();
           toggleLoading(false);
         })
-        .catch(err => {
-          console.error(err);
-          alert("無法取得試算表 Setup 設定");
-          toggleLoading(false);
-        });
+        .catch(err => { console.error(err); alert("無法取得試算表 Setup 設定"); toggleLoading(false); });
     }
 
     function renderSideItemsList(sideList) {
       const container = document.getElementById('sideItemsContainer');
       container.innerHTML = '';
-      if (!sideList || sideList.length === 0) {
-        container.innerHTML = '<p class="text-muted mb-0">暫無單點品項資料</p>';
-        return;
-      }
+      if (!sideList || sideList.length === 0) { container.innerHTML = '<p class="text-muted mb-0">暫無單點品項資料</p>'; return; }
       sideList.forEach(item => {
         const row = document.createElement('div');
         row.className = 'side-item-row';
-        row.innerHTML = `
-          <span class="fw-medium text-secondary">${item.name} <span class="text-muted">($${item.price})</span></span>
-          <input type="number" class="form-control side-qty-input" data-name="${item.name}" min="0" value="0">
-        `;
+        row.innerHTML = `<span class="fw-medium text-secondary">${item.name} <span class="text-muted">($${item.price})</span></span><input type="number" class="form-control side-qty-input" data-name="${item.name}" min="0" value="0">`;
         row.querySelector('.side-qty-input').addEventListener('input', calculateLiveTotal);
         container.appendChild(row);
       });
@@ -198,158 +133,90 @@
       comboCounter++;
       const id = `combo_${comboCounter}`;
       const container = document.getElementById('comboContainer');
-
       const card = document.createElement('div');
       card.className = 'card combo-card';
       card.id = id;
 
       let typeOptions = '';
-      [{value:"1", text:"單點"},{value:"2", text:"雙拼"},{value:"3", text:"三拼"},{value:"4", text:"四拼"}].forEach(t => {
-        typeOptions += `<option value="${t.value}">${t.text}</option>`;
-      });
-
+      [{value:"1", text:"單點"},{value:"2", text:"雙拼"},{value:"3", text:"三拼"},{value:"4", text:"四拼"}].forEach(t => { typeOptions += `<option value="${t.value}">${t.text}</option>`; });
       let upgradeOptions = '';
-      globalSetupData.upgrade.forEach(u => {
-        upgradeOptions += `<option value="${u.name}">${u.name}</option>`;
-      });
+      globalSetupData.upgrade.forEach(u => { upgradeOptions += `<option value="${u.name}">${u.name}</option>`; });
 
       card.innerHTML = `
         <div class="row g-2 mb-3">
-          <div class="col-8">
-            <select class="form-select combo-type-select fw-bold text-dark">
-              ${typeOptions}
-            </select>
-          </div>
-          <div class="col-4">
-            <div class="input-group">
-              <span class="input-group-text bg-light text-secondary">數量</span>
-              <input type="number" class="form-control combo-qty-input" min="0" value="1">
-            </div>
-          </div>
+          <div class="col-8"><select class="form-select combo-type-select fw-bold text-dark">${typeOptions}</select></div>
+          <div class="col-4"><div class="input-group"><span class="input-group-text bg-light text-secondary">數量</span><input type="number" class="form-control combo-qty-input" min="0" value="1"></div></div>
         </div>
-        
         <div class="dish-select-group mb-3" id="${id}_dishes"></div>
-
-        <div class="mb-3">
-          <select class="form-select combo-upgrade-select text-secondary">
-            ${upgradeOptions}
-          </select>
-        </div>
-
+        <div class="mb-3"><select class="form-select combo-upgrade-select text-secondary">${upgradeOptions}</select></div>
         <div class="d-flex justify-content-between align-items-center">
           <button type="button" class="btn btn-danger btn-sm fw-bold btn-delete-combo">刪除此組合</button>
           <div class="text-danger fw-bold combo-subtotal">小計: $0</div>
         </div>
       `;
-
       container.appendChild(card);
 
       const typeSelect = card.querySelector('.combo-type-select');
-      const qtyInput = card.querySelector('.combo-qty-input');
-      const upgradeSelect = card.querySelector('.combo-upgrade-select');
-      const dishesDiv = card.querySelector(`#${id}_dishes`);
-
-      typeSelect.addEventListener('change', function() {
-        renderDishDropdowns(this.value, dishesDiv);
-        calculateLiveTotal();
-      });
-      qtyInput.addEventListener('input', calculateLiveTotal);
-      upgradeSelect.addEventListener('change', calculateLiveTotal);
-
-      card.querySelector('.btn-delete-combo').addEventListener('click', function() {
-        card.remove();
-        calculateLiveTotal();
-      });
+      typeSelect.addEventListener('change', function() { renderDishDropdowns(this.value, card.querySelector(`#${id}_dishes`)); calculateLiveTotal(); });
+      card.querySelector('.combo-qty-input').addEventListener('input', calculateLiveTotal);
+      card.querySelector('.combo-upgrade-select').addEventListener('change', calculateLiveTotal);
+      card.querySelector('.btn-delete-combo').addEventListener('click', function() { card.remove(); calculateLiveTotal(); });
 
       if (preFillData) {
         typeSelect.value = preFillData.type;
-        qtyInput.value = preFillData.qty;
-        upgradeSelect.value = preFillData.upgrade;
-        renderDishDropdowns(preFillData.type, dishesDiv);
-        const selects = dishesDiv.querySelectorAll('.dish-select');
-        preFillData.items.forEach((itemName, idx) => {
-          if (selects[idx]) selects[idx].value = itemName;
-        });
-      } else {
-        renderDishDropdowns("1", dishesDiv);
-      }
+        card.querySelector('.combo-qty-input').value = preFillData.qty;
+        card.querySelector('.combo-upgrade-select').value = preFillData.upgrade;
+        renderDishDropdowns(preFillData.type, card.querySelector(`#${id}_dishes`));
+        const selects = card.querySelectorAll('.dish-select');
+        preFillData.items.forEach((itemName, idx) => { if (selects[idx]) selects[idx].value = itemName; });
+      } else { renderDishDropdowns("1", card.querySelector(`#${id}_dishes`)); }
     }
 
     function renderDishDropdowns(typeValue, targetDiv) {
       targetDiv.innerHTML = '';
       const count = parseInt(typeValue) || 1;
       let dishOptions = '';
-      globalSetupData.singleCombo.forEach(d => {
-        dishOptions += `<option value="${d.name}">${d.name}</option>`;
-      });
-
+      globalSetupData.singleCombo.forEach(d => { dishOptions += `<option value="${d.name}">${d.name}</option>`; });
       for (let i = 0; i < count; i++) {
         const select = document.createElement('select');
         select.className = 'form-select dish-select';
         select.innerHTML = dishOptions;
         select.addEventListener('change', calculateLiveTotal);
         targetDiv.appendChild(select);
-        const label = document.createElement('span');
-        label.className = 'text-muted fw-medium';
-        label.innerText = '便當';
-        targetDiv.appendChild(label);
       }
+      const label = document.createElement('span');
+      label.className = 'text-muted fw-medium ms-1';
+      label.innerText = '便當';
+      targetDiv.appendChild(label);
     }
 
     function calculateLiveTotal() {
       if (!globalSetupData) return;
       let grandTotal = 0;
-      const comboCards = document.querySelectorAll('.combo-card');
-      comboCards.forEach(card => {
+      document.querySelectorAll('.combo-card').forEach(card => {
         const type = card.querySelector('.combo-type-select').value;
         const qty = parseInt(card.querySelector('.combo-qty-input').value) || 0;
         const upgradeName = card.querySelector('.combo-upgrade-select').value;
-
-        let basePrice = 0;
-        if (type === "1") {
-          const firstSelect = card.querySelector('.dish-select');
-          if (firstSelect) basePrice = globalSetupData.singleComboPrices[firstSelect.value] || 0;
-        } else if (type === "2") { basePrice = globalSetupData.comboTypePrices["雙拼"] || 120; } 
-        else if (type === "3") { basePrice = globalSetupData.comboTypePrices["三拼"] || 125; } 
-        else if (type === "4") { basePrice = globalSetupData.comboTypePrices["四拼"] || 130; }
-
-        const upgradePrice = globalSetupData.upgradePrices[upgradeName] || 0;
-        const subtotal = (basePrice + upgradePrice) * qty;
+        let basePrice = (type === "1") ? (globalSetupData.singleComboPrices[card.querySelector('.dish-select').value] || 0) : (globalSetupData.comboTypePrices[type === "2" ? "雙拼" : type === "3" ? "三拼" : "四拼"] || 120);
+        const subtotal = (basePrice + (globalSetupData.upgradePrices[upgradeName] || 0)) * qty;
         card.querySelector('.combo-subtotal').innerText = `小計: $${subtotal}`;
         grandTotal += subtotal;
       });
-
-      const sideInputs = document.querySelectorAll('.side-qty-input');
-      sideInputs.forEach(input => {
-        const name = input.getAttribute('data-name');
-        const qty = parseInt(input.value) || 0;
-        const unitPrice = globalSetupData.sidePrices[name] || 0;
-        grandTotal += (unitPrice * qty);
-      });
-
+      document.querySelectorAll('.side-qty-input').forEach(input => { grandTotal += ((globalSetupData.sidePrices[input.getAttribute('data-name')] || 0) * (parseInt(input.value) || 0)); });
       document.getElementById('grandTotalDisplay').innerText = grandTotal;
     }
 
     function loadOldOrder() {
       const orderId = document.getElementById('queryOrderId').value.trim();
       if (!orderId) { alert("請輸入訂單編號！"); return; }
-      toggleLoading(true, "正在搜尋並撈取舊訂單...");
+      toggleLoading(true, "正在搜尋舊訂單...");
       fetch(`${SCRIPT_URL}?orderId=${encodeURIComponent(orderId)}`)
         .then(res => res.json())
         .then(data => {
           if (data.error) { alert("找不到此訂單"); toggleLoading(false); return; }
           document.getElementById('comboContainer').innerHTML = '';
-          if (data.combos && data.combos.length > 0) {
-            data.combos.forEach(c => addComboCard(c));
-          } else { addComboCard(); }
-          const sideInputs = document.querySelectorAll('.side-qty-input');
-          sideInputs.forEach(input => input.value = 0);
-          if (data.sidesData) {
-            for (let name in data.sidesData) {
-              const input = document.querySelector(`.side-qty-input[data-name="${name}"]`);
-              if (input) input.value = data.sidesData[name];
-            }
-          }
+          if (data.combos) data.combos.forEach(c => addComboCard(c)); else addComboCard();
+          document.querySelectorAll('.side-qty-input').forEach(input => input.value = data.sidesData ? (data.sidesData[input.getAttribute('data-name')] || 0) : 0);
           calculateLiveTotal();
           toggleLoading(false);
           alert("舊訂單讀取成功！");
@@ -359,33 +226,18 @@
 
     function submitOrder() {
       let orderId = document.getElementById('queryOrderId').value.trim();
-      if (!orderId) {
-        const now = new Date();
-        orderId = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
-      }
+      if (!orderId) { const n = new Date(); orderId = `${n.getFullYear()}${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}_${String(n.getHours()).padStart(2,'0')}${String(n.getMinutes()).padStart(2,'0')}${String(n.getSeconds()).padStart(2,'0')}`; }
       const combos = [];
       document.querySelectorAll('.combo-card').forEach(card => {
-        const type = card.querySelector('.combo-type-select').value;
-        const qty = parseInt(card.querySelector('.combo-qty-input').value) || 0;
-        const upgrade = card.querySelector('.combo-upgrade-select').value;
-        const items = Array.from(card.querySelectorAll('.dish-select')).map(sel => sel.value);
+        const type = card.querySelector('.combo-type-select').value, qty = parseInt(card.querySelector('.combo-qty-input').value) || 0, upgrade = card.querySelector('.combo-upgrade-select').value, items = Array.from(card.querySelectorAll('.dish-select')).map(sel => sel.value);
         if (qty > 0 && items.length > 0) combos.push({type, qty, items, upgrade});
       });
-      const sidesData = {};
-      document.querySelectorAll('.side-qty-input').forEach(input => {
-        const name = input.getAttribute('data-name');
-        const qty = parseInt(input.value) || 0;
-        sidesData[name] = qty;
-      });
+      const sidesData = {}; document.querySelectorAll('.side-qty-input').forEach(input => sidesData[input.getAttribute('data-name')] = parseInt(input.value) || 0);
       if (combos.length === 0 && Object.values(sidesData).every(v=>v===0)) { alert("請至少選擇一項餐點！"); return; }
       toggleLoading(true, "訂單送出中...");
       fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({orderId, combos, sidesData}) })
       .then(res => res.text())
-      .then(result => {
-        toggleLoading(false);
-        if (result === "成功") { alert(`送出成功！編號：${orderId}`); document.getElementById('queryOrderId').value = orderId; }
-        else { alert("異常：" + result); }
-      })
+      .then(result => { toggleLoading(false); if (result === "成功") { alert(`送出成功！編號：${orderId}`); document.getElementById('queryOrderId').value = orderId; } else { alert("異常：" + result); } })
       .catch(err => { console.error(err); alert("送出失敗"); toggleLoading(false); });
     }
   </script>
