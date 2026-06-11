@@ -55,8 +55,15 @@
     .btn-query:hover {
       background-color: #e0a800;
     }
+    .combo-price-info {
+      text-align: right;
+    }
+    .combo-unit-price {
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
     .combo-subtotal {
-      font-size: 1.05rem;
+      font-size: 1.1rem;
     }
     .total-card {
       border: 2px dashed #0d6efd;
@@ -118,7 +125,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // ⚠️ 請在此處替換為你真實的 Google Apps Script 網頁應用程式 URL
+    // 已自動保留填入你提供的真實 GAS Web App 網址
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxyo_n_hczMeGaNd059wuNF7EpNKU2gqJdI32plTmdmNOWz-w2WY6r_9jKDHNNZQla7A/exec';
 
     // 全域變數，用來儲存從後端撈回來的 Setup 配置快照
@@ -155,7 +162,31 @@
             alert(data.error);
             return;
           }
+          
+          // 【關鍵防禦修復】動態建立價格查找物件，預防後端只提供純陣列造成的計算死機
           globalSetupData = data;
+          
+          globalSetupData.singleComboPrices = globalSetupData.singleComboPrices || {};
+          if (data.singleCombo) {
+            data.singleCombo.forEach(d => globalSetupData.singleComboPrices[d.name] = Number(d.price) || 0);
+          }
+          
+          globalSetupData.sidePrices = globalSetupData.sidePrices || {};
+          if (data.side) {
+            data.side.forEach(s => globalSetupData.sidePrices[s.name] = Number(s.price) || 0);
+          }
+          
+          globalSetupData.upgradePrices = globalSetupData.upgradePrices || {};
+          if (data.upgrade) {
+            data.upgrade.forEach(u => globalSetupData.upgradePrices[u.name] = Number(u.price) || 0);
+          }
+          
+          globalSetupData.comboTypePrices = globalSetupData.comboTypePrices || {
+            "單點": 0,
+            "雙拼": 120,
+            "三拼": 125,
+            "四拼": 130
+          };
           
           // 渲染單點區域
           renderSideItemsList(data.side);
@@ -253,7 +284,10 @@
 
         <div class="d-flex justify-content-between align-items-center">
           <button type="button" class="btn btn-danger btn-sm fw-bold btn-delete-combo">刪除此組合</button>
-          <span class="text-danger fw-bold combo-subtotal">小計: $0</span>
+          <div class="combo-price-info">
+            <div class="combo-unit-price fw-medium">單價: $0</div>
+            <div class="text-danger fw-bold combo-subtotal">小計: $0</div>
+          </div>
         </div>
       `;
 
@@ -310,7 +344,7 @@
         select.className = 'form-select dish-select';
         select.innerHTML = dishOptions;
         
-        // 只有在「單點」模式下，切換主餐才會影響底價，但統一綁定計算更保險
+        // 切換單個選單主餐時也要即時重新計算金額
         select.addEventListener('change', calculateLiveTotal);
         
         targetDiv.appendChild(select);
@@ -348,9 +382,11 @@
         else if (type === "4") { basePrice = globalSetupData.comboTypePrices["四拼"] || 130; }
 
         const upgradePrice = globalSetupData.upgradePrices[upgradeName] || 0;
-        const subtotal = (basePrice + upgradePrice) * qty;
+        const unitPrice = basePrice + upgradePrice;
+        const subtotal = unitPrice * qty;
 
-        // 渲染該張組合卡片右下角的小計金額
+        // 更新此組合卡片的金額與小計欄位
+        card.querySelector('.combo-unit-price').innerText = `單價: $${unitPrice}`;
         card.querySelector('.combo-subtotal').innerText = `小計: $${subtotal}`;
         grandTotal += subtotal;
       });
@@ -407,7 +443,7 @@
             }
           }
 
-          // 💡 舊資料帶入完畢後，強制重新計算一次最新總金額
+          // 舊資料帶入完畢後，強制重新計算一次最新總金額
           calculateLiveTotal();
 
           toggleLoading(false);
