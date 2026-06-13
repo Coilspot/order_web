@@ -280,7 +280,7 @@
       .then(res => res.text())
       .then(r => { 
         toggleLoading(false); 
-        alert(r === "成功" ? "送出成功！編號：" + orderId : "失敗：" + r); 
+        alert(r === "成功" ? "送出成功！編號：" + orderId + "\n\n請記下訂單號，以便修改訂單內容" : "失敗：" + r);
       })
       .catch(err => { 
         // 🚀 關鍵修正：若發生網路斷線、CORS 錯誤或後端丟出異常，在此解鎖畫面
