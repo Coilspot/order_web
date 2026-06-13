@@ -33,6 +33,9 @@
           <input type="text" id="queryOrderId" class="form-control" placeholder="格式範例：20260613_103111">
           <button class="btn btn-query" type="button" id="btnLoadOrder">讀取訂單</button>
         </div>
+        <p style="color: #d9534f; font-weight: bold; font-size: 14px; margin-top: 8px; margin-bottom: 0;">
+          💡 請記下訂單號，以便修改訂單內容
+        </p>
       </div>
     </div>
 
@@ -101,14 +104,10 @@
       fetch(`${SCRIPT_URL}?getSetup=true`)
         .then(res => res.json())
         .then(data => {
-          // 🚀 關鍵優化：直接接住後端已經包好的物件資料，不再重複跑迴圈
           globalSetupData = data;
-          
-          // 如果後端沒回傳預設拼數價格，給予預設兜底
           if (!globalSetupData.comboTypePrices || Object.keys(globalSetupData.comboTypePrices).length === 0) {
             globalSetupData.comboTypePrices = { "單點": 0, "雙拼": 120, "三拼": 125, "四拼": 130 };
           }
-          
           renderSideItemsList(data.side);
           addComboCard();
           calculateLiveTotal();
@@ -216,6 +215,20 @@
       });
       document.querySelectorAll('.side-qty-input').forEach(input => { grandTotal += ((globalSetupData.sidePrices[input.getAttribute('data-name')] || 0) * (parseInt(input.value) || 0)); });
       document.getElementById('grandTotalDisplay').innerText = grandTotal;
+
+      // 金額為 0 時禁用送出按鈕，並變更 Bootstrap 視覺外觀
+      const submitBtn = document.getElementById('btnSubmitOrder');
+      if (grandTotal <= 0) {
+        submitBtn.disabled = true;
+        submitBtn.classList.remove('btn-primary');
+        submitBtn.classList.add('btn-secondary');
+        submitBtn.style.cursor = 'not-allowed';
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('btn-secondary');
+        submitBtn.classList.add('btn-primary');
+        submitBtn.style.cursor = 'pointer';
+      }
     }
 
     function loadOldOrder() {
@@ -228,25 +241,20 @@
           if (data.error) { 
             alert("找不到該訂單：" + data.error); 
           } else {
-            // 先清空現有的組合區塊
             document.getElementById('comboContainer').innerHTML = '';
             
-            // 🚀 關鍵修正：只有在舊訂單「真的有組合」時才建立組合卡
             if (data.combos && data.combos.length > 0) {
               data.combos.forEach(c => addComboCard(c));
             } 
-            // 如果完全沒有組合資料，且單點列表也都是空的（代表是徹底的空訂單），才塞一張空白卡供使用者填寫
             else if (!data.sidesData || Object.values(data.sidesData).every(v => v === 0)) {
               addComboCard();
             }
     
-            // 正確填入單點（黑色字）列表的數量
             document.querySelectorAll('.side-qty-input').forEach(input => {
               const sideName = input.getAttribute('data-name');
               input.value = data.sidesData ? (data.sidesData[sideName] || 0) : 0;
             });
     
-            // 重新計算畫面總金額
             calculateLiveTotal();
             alert("訂單載入成功！");
           }
@@ -281,9 +289,14 @@
       .then(r => { 
         toggleLoading(false); 
         alert(r === "成功" ? "送出成功！編號：" + orderId + "\n\n請記下訂單號，以便修改訂單內容" : "失敗：" + r);
+        
+        // 成功送出後填入單號並滾動至最上方
+        if (r === "成功") {
+          document.getElementById('queryOrderId').value = orderId;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       })
       .catch(err => { 
-        // 🚀 關鍵修正：若發生網路斷線、CORS 錯誤或後端丟出異常，在此解鎖畫面
         toggleLoading(false); 
         alert("連線失敗，請檢查網路，或確認 Google 試算表的分頁名稱是否與 Apps Script 一致。");
         console.error(err);
