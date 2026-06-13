@@ -258,6 +258,7 @@
           toggleLoading(false); 
         });
     }
+    
     function submitOrder() {
       let hasError = false;
       document.querySelectorAll('.combo-card').forEach(card => { if (!validateCombo(card)) hasError = true; });
