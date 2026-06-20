@@ -128,7 +128,8 @@
     // Supabase 連線資訊 (請替換為您的專案 URL 與 Anon Key)
     const SUPABASE_URL = 'https://kunjdfvluaoyfszocfzb.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_B_-aIszU8wV0RyFnXwid8g_BMc1OVv2';
-    const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    // 重新命名為 supabaseClient 避免與 CDN 的全域 window.supabase 變數衝突
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
     let globalSetupData = null;
     let comboCounter = 0;
@@ -165,12 +166,12 @@
     async function fetchSetupConfig() {
       toggleLoading(true, "系統資料載入中...");
       try {
-        if (!supabase) {
+        if (!supabaseClient) {
           throw new Error("Supabase 客戶端尚未初始化，請確認連接資訊是否正確填寫。");
         }
         
         // 讀取所有菜單品項
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from('menu_items')
           .select('*');
         
@@ -468,12 +469,12 @@
       toggleLoading(true, "讀取中...");
       
       try {
-        if (!supabase) {
+        if (!supabaseClient) {
           throw new Error("Supabase 客戶端尚未初始化，請確認連接資訊是否正確填寫。");
         }
 
         // 1. 讀取主訂單
-        const { data: orderData, error: orderError } = await supabase
+        const { data: orderData, error: orderError } = await supabaseClient
           .from('orders')
           .select('*')
           .eq('id', orderId)
@@ -487,7 +488,7 @@
         }
 
         // 2. 讀取關聯組合
-        const { data: combosData, error: combosError } = await supabase
+        const { data: combosData, error: combosError } = await supabaseClient
           .from('combos')
           .select('*')
           .eq('order_id', orderId);
@@ -495,7 +496,7 @@
         if (combosError) throw combosError;
 
         // 3. 讀取關聯品項
-        const { data: itemsData, error: itemsError } = await supabase
+        const { data: itemsData, error: itemsError } = await supabaseClient
           .from('order_items')
           .select('*')
           .eq('order_id', orderId);
@@ -599,12 +600,12 @@
       toggleLoading(true, "訂單送出中...");
       
       try {
-        if (!supabase) {
+        if (!supabaseClient) {
           throw new Error("Supabase 客戶端尚未初始化，請確認連接資訊是否正確填寫。");
         }
 
         // 1. 寫入/更新主訂單
-        const { error: orderError } = await supabase
+        const { error: orderError } = await supabaseClient
           .from('orders')
           .upsert({
             id: orderId,
@@ -614,14 +615,14 @@
         if (orderError) throw orderError;
 
         // 2. 清理舊有關聯明細與組合資料（確保重新寫入時不會有髒資料殘留）
-        const { error: deleteItemsError } = await supabase
+        const { error: deleteItemsError } = await supabaseClient
           .from('order_items')
           .delete()
           .eq('order_id', orderId);
 
         if (deleteItemsError) throw deleteItemsError;
 
-        const { error: deleteCombosError } = await supabase
+        const { error: deleteCombosError } = await supabaseClient
           .from('combos')
           .delete()
           .eq('order_id', orderId);
@@ -641,7 +642,7 @@
         for (const combo of combos) {
           const comboTypeName = comboTypeMap[combo.type] || "單點";
           
-          const { data: insertedCombo, error: comboInsertError } = await supabase
+          const { data: insertedCombo, error: comboInsertError } = await supabaseClient
             .from('combos')
             .insert({
               order_id: orderId,
@@ -680,7 +681,7 @@
 
         // 5. 批次寫入所有訂單明細
         if (itemsToInsert.length > 0) {
-          const { error: itemsInsertError } = await supabase
+          const { error: itemsInsertError } = await supabaseClient
             .from('order_items')
             .insert(itemsToInsert);
 
