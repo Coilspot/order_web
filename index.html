@@ -121,9 +121,15 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- 引入 Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxyo_n_hczMeGaNd059wuNF7EpNKU2gqJdI32plTmdmNOWz-w2WY6r_9jKDHNNZQla7A/exec';
+    // Supabase 連線資訊 (請替換為您的專案 URL 與 Anon Key)
+    const SUPABASE_URL = 'https://kunjdfvluaoyfszocfzb.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_B_-aIszU8wV0RyFnXwid8g_BMc1OVv2';
+    const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
     let globalSetupData = null;
     let comboCounter = 0;
 
@@ -156,25 +162,67 @@
       calculateLiveTotal();
     }
 
-    function fetchSetupConfig() {
+    async function fetchSetupConfig() {
       toggleLoading(true, "系統資料載入中...");
-      fetch(`${SCRIPT_URL}?getSetup=true`)
-        .then(res => res.json())
-        .then(data => {
-          globalSetupData = data;
-          if (!globalSetupData.comboTypePrices || Object.keys(globalSetupData.comboTypePrices).length === 0) {
-            globalSetupData.comboTypePrices = { "單點": 0, "雙拼": 120, "三拼": 125, "四拼": 130 };
+      try {
+        if (!supabase) {
+          throw new Error("Supabase 客戶端尚未初始化，請確認連接資訊是否正確填寫。");
+        }
+        
+        // 讀取所有菜單品項
+        const { data, error } = await supabase
+          .from('menu_items')
+          .select('*');
+        
+        if (error) throw error;
+        
+        // 初始化目標資料結構
+        const setupData = {
+          singleCombo: [],
+          singleComboPrices: {},
+          comboTypePrices: {},
+          upgrade: [],
+          upgradePrices: {},
+          side: [],
+          sidePrices: {}
+        };
+        
+        // 將資料庫品項分類填入前端結構
+        data.forEach(item => {
+          const category = item.category;
+          const name = item.name;
+          const price = item.price || 0;
+          
+          if (category === 'main') {
+            setupData.singleCombo.push({ name: name, price: price });
+            setupData.singleComboPrices[name] = price;
+          } else if (category === 'side') {
+            setupData.side.push({ name: name, price: price });
+            setupData.sidePrices[name] = price;
+          } else if (category === 'upgrade') {
+            setupData.upgrade.push({ name: name, price: price });
+            setupData.upgradePrices[name] = price;
+          } else if (category === 'combo') {
+            setupData.comboTypePrices[name] = price;
           }
-          renderSideItemsList(data.side);
-          addComboCard();
-          calculateLiveTotal();
-          toggleLoading(false);
-        })
-        .catch(err => { 
-          console.error(err); 
-          alert("無法取得設定，請檢查網路連線或 Apps Script 權限設定。"); 
-          toggleLoading(false); 
         });
+        
+        // 設定 comboTypePrices 的預設值（防呆）
+        if (!setupData.comboTypePrices || Object.keys(setupData.comboTypePrices).length === 0) {
+          setupData.comboTypePrices = { "單點": 0, "雙拼": 120, "三拼": 125, "四拼": 130 };
+        }
+        
+        globalSetupData = setupData;
+        
+        renderSideItemsList(globalSetupData.side);
+        addComboCard();
+        calculateLiveTotal();
+        toggleLoading(false);
+      } catch (err) {
+        console.error(err);
+        alert("無法取得設定，請檢查網路連線、Supabase 專案 URL/Key 或資料表 menu_items 是否已建立資料。\n錯誤資訊: " + err.message);
+        toggleLoading(false);
+      }
     }
 
     function renderSideItemsList(sideList) {
@@ -414,43 +462,107 @@
       }
     }
 
-    function loadOldOrder() {
+    async function loadOldOrder() {
       const orderId = document.getElementById('queryOrderId').value.trim();
       if (!orderId) { alert("請輸入訂單編號！"); return; }
       toggleLoading(true, "讀取中...");
-      fetch(`${SCRIPT_URL}?orderId=${encodeURIComponent(orderId)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) { 
-            alert("找不到該訂單：" + data.error); 
-          } else {
-            document.getElementById('comboContainer').innerHTML = '';
-            
-            if (data.combos && data.combos.length > 0) {
-              data.combos.forEach(c => addComboCard(c));
-            } 
-            else if (!data.sidesData || Object.values(data.sidesData).every(v => v === 0)) {
-              addComboCard();
-            }
-    
-            document.querySelectorAll('.side-qty-input').forEach(input => {
-              const sideName = input.getAttribute('data-name');
-              input.value = data.sidesData ? (data.sidesData[sideName] || 0) : 0;
-            });
-    
-            calculateLiveTotal();
-            alert("訂單載入成功！");
-          }
+      
+      try {
+        if (!supabase) {
+          throw new Error("Supabase 客戶端尚未初始化，請確認連接資訊是否正確填寫。");
+        }
+
+        // 1. 讀取主訂單
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', orderId)
+          .maybeSingle();
+
+        if (orderError) throw orderError;
+        if (!orderData) {
+          alert("找不到該訂單：" + orderId);
           toggleLoading(false);
-        })
-        .catch(err => { 
-          console.error(err); 
-          alert("讀取失敗，請確認網路連線或確認 Apps Script 是否已正確更新部署。"); 
-          toggleLoading(false); 
+          return;
+        }
+
+        // 2. 讀取關聯組合
+        const { data: combosData, error: combosError } = await supabase
+          .from('combos')
+          .select('*')
+          .eq('order_id', orderId);
+
+        if (combosError) throw combosError;
+
+        // 3. 讀取關聯品項
+        const { data: itemsData, error: itemsError } = await supabase
+          .from('order_items')
+          .select('*')
+          .eq('order_id', orderId);
+
+        if (itemsError) throw itemsError;
+
+        // 4. 還原資料結構
+        const typeMapReverse = {
+          "單點": "1",
+          "雙拼": "2",
+          "三拼": "3",
+          "四拼": "4"
+        };
+
+        const combos = combosData.map(c => {
+          // 篩選出屬於該組合的主餐名稱列表
+          const comboDishes = itemsData
+            .filter(item => item.combo_id === c.id)
+            .map(item => item.menu_item);
+
+          return {
+            type: typeMapReverse[c.combo_type] || "1",
+            qty: c.qty,
+            upgrade: c.upgrade_name || "無",
+            items: comboDishes
+          };
         });
+
+        const sidesData = {};
+        // 預設所有單點品項數量為 0
+        if (globalSetupData && globalSetupData.side) {
+          globalSetupData.side.forEach(s => {
+            sidesData[s.name] = 0;
+          });
+        }
+        // 填入讀取到的單點數量
+        itemsData.forEach(item => {
+          if (item.combo_id === null) {
+            sidesData[item.menu_item] = item.qty;
+          }
+        });
+
+        // 5. 渲染頁面
+        document.getElementById('comboContainer').innerHTML = '';
+        if (combos.length > 0) {
+          combos.forEach(c => addComboCard(c));
+        } else if (Object.values(sidesData).every(v => v === 0)) {
+          addComboCard();
+        }
+
+        document.querySelectorAll('.side-qty-input').forEach(input => {
+          const sideName = input.getAttribute('data-name');
+          input.value = sidesData[sideName] || 0;
+        });
+
+        calculateLiveTotal();
+        alert("訂單載入成功！");
+      } catch (err) {
+        console.error(err);
+        alert("讀取失敗，請確認網路連線、Supabase 設定或訂單編號是否正確。\n錯誤資訊: " + err.message);
+      } finally {
+        toggleLoading(false);
+      }
     }
     
-    function submitOrder() {
+    async function submitOrder() {
+      // 收集組合資料
       const combos = [];
       document.querySelectorAll('.combo-card').forEach(card => {
         const checkedTypeRadio = card.querySelector('.type-radio:checked');
@@ -470,29 +582,121 @@
         }
       });
 
+      // 收集單點資料
       const sidesData = {}; 
-      document.querySelectorAll('.side-qty-input').forEach(i => sidesData[i.getAttribute('data-name')] = parseInt(i.value) || 0);
-      if (combos.length === 0 && Object.values(sidesData).every(v=>v===0)) { alert("請至少選擇一項餐點！"); return; }
+      document.querySelectorAll('.side-qty-input').forEach(i => {
+        sidesData[i.getAttribute('data-name')] = parseInt(i.value) || 0;
+      });
+
+      if (combos.length === 0 && Object.values(sidesData).every(v => v === 0)) {
+        alert("請至少選擇一項餐點！");
+        return;
+      }
       
       const orderId = document.getElementById('queryOrderId').value.trim() || getFormattedTimestamp();
+      const grandTotal = parseInt(document.getElementById('grandTotalDisplay').innerText) || 0;
+      
       toggleLoading(true, "訂單送出中...");
       
-      fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({orderId, combos, sidesData}) })
-      .then(res => res.text())
-      .then(r => { 
-        toggleLoading(false); 
-        alert(r === "成功" ? "送出成功！編號：" + orderId + "\n\n請記下訂單號，以便修改訂單內容" : "失敗：" + r);
-        
-        if (r === "成功") {
-          document.getElementById('queryOrderId').value = orderId;
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+      try {
+        if (!supabase) {
+          throw new Error("Supabase 客戶端尚未初始化，請確認連接資訊是否正確填寫。");
         }
-      })
-      .catch(err => { 
-        toggleLoading(false); 
-        alert("連線失敗，請檢查網路，或確認 Google 試算表的分頁名稱是否與 Apps Script 一致。");
+
+        // 1. 寫入/更新主訂單
+        const { error: orderError } = await supabase
+          .from('orders')
+          .upsert({
+            id: orderId,
+            total_price: grandTotal
+          }, { onConflict: 'id' });
+
+        if (orderError) throw orderError;
+
+        // 2. 清理舊有關聯明細與組合資料（確保重新寫入時不會有髒資料殘留）
+        const { error: deleteItemsError } = await supabase
+          .from('order_items')
+          .delete()
+          .eq('order_id', orderId);
+
+        if (deleteItemsError) throw deleteItemsError;
+
+        const { error: deleteCombosError } = await supabase
+          .from('combos')
+          .delete()
+          .eq('order_id', orderId);
+
+        if (deleteCombosError) throw deleteCombosError;
+
+        // 3. 逐一寫入組合資料，並收集其所產生的 combo_id 用於 order_items
+        const comboTypeMap = {
+          "1": "單點",
+          "2": "雙拼",
+          "3": "三拼",
+          "4": "四拼"
+        };
+
+        const itemsToInsert = [];
+
+        for (const combo of combos) {
+          const comboTypeName = comboTypeMap[combo.type] || "單點";
+          
+          const { data: insertedCombo, error: comboInsertError } = await supabase
+            .from('combos')
+            .insert({
+              order_id: orderId,
+              combo_type: comboTypeName,
+              qty: combo.qty,
+              upgrade_name: combo.upgrade
+            })
+            .select('id')
+            .single();
+
+          if (comboInsertError) throw comboInsertError;
+          const comboId = insertedCombo.id;
+
+          // 將組合內的主餐加入待寫入清單
+          combo.items.forEach(dishName => {
+            itemsToInsert.push({
+              order_id: orderId,
+              combo_id: comboId,
+              menu_item: dishName,
+              qty: 1
+            });
+          });
+        }
+
+        // 4. 將單點品項加入待寫入清單
+        for (const [sideName, sideQty] of Object.entries(sidesData)) {
+          if (sideQty > 0) {
+            itemsToInsert.push({
+              order_id: orderId,
+              combo_id: null,
+              menu_item: sideName,
+              qty: sideQty
+            });
+          }
+        }
+
+        // 5. 批次寫入所有訂單明細
+        if (itemsToInsert.length > 0) {
+          const { error: itemsInsertError } = await supabase
+            .from('order_items')
+            .insert(itemsToInsert);
+
+          if (itemsInsertError) throw itemsInsertError;
+        }
+
+        alert("送出成功！編號：" + orderId + "\n\n請記下訂單號，以便修改訂單內容");
+        document.getElementById('queryOrderId').value = orderId;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      } catch (err) {
         console.error(err);
-      });
+        alert("連線失敗或寫入資料庫發生錯誤，請檢查網路連線或金鑰設定。\n錯誤資訊: " + err.message);
+      } finally {
+        toggleLoading(false);
+      }
     }
   </script>
 </body>
