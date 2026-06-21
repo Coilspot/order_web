@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>點餐系統 - 管理者數據報表</title>
+  <!-- 引入 Google Fonts Outfit -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- 引入 Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f3f4f6;
+      --card-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --primary: #4f46e5;
+      --primary-light: #e0e7ff;
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --info: #06b6d4;
+      --info-light: #ecfeff;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --border-color: #e5e7eb;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text-main);
+      padding-bottom: 50px;
+    }
+
+    /* 登入區樣式 */
+    .login-container {
+      max-width: 400px;
+      margin-top: 15vh;
+    }
+    .login-card {
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      background-color: var(--card-bg);
+      padding: 30px;
+    }
+
+    /* 主儀表板樣式 */
+    .dashboard-header {
+      background: linear-gradient(135deg, #4f46e5, #3730a3);
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 20px rgba(79, 70, 229, 0.15);
+    }
+    
+    .card-kpi {
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 15px rgba(0, 0, 0, 0.03);
+      background-color: var(--card-bg);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card-kpi:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    .kpi-icon-wrapper {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .kpi-title {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 4px;
+    }
+
+    .card-chart {
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+      background-color: var(--card-bg);
+      margin-bottom: 25px;
+    }
+    .card-chart .card-header {
+      background-color: transparent;
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    .card-chart .card-body {
+      padding: 24px;
+    }
+
+    .table-container {
+      background-color: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+      padding: 24px;
+    }
+
+    /* Loading 遮罩 */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .spinner-border {
+      width: 3rem;
+      height: 3rem;
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading 遮罩 -->
+  <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+    <div class="spinner-border mb-3" role="status"></div>
+    <div id="loadingText">處理中...</div>
+  </div>
+
+  <!-- 1. 登入區塊 -->
+  <div id="authContainer" class="container login-container">
+    <div class="login-card text-center">
+      <h3 class="fw-bold text-primary mb-3">管理者登入</h3>
+      <p class="text-muted mb-4">請輸入密碼以檢視點餐系統數據報表</p>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="mb-3">
+          <input type="password" id="adminPassword" class="form-control form-control-lg text-center" placeholder="請輸入密碼" required autofocus>
+          <div id="loginFeedback" class="invalid-feedback mt-2">密碼錯誤，請再試一次。</div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold py-2">登入系統</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. 主報表儀表板區塊 -->
+  <div id="dashboardContainer" class="container py-4" style="display: none;">
+    
+    <!-- 頂部頁首與控制 -->
+    <div class="dashboard-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <h2 class="m-0 fw-bold">點餐系統數據儀表板</h2>
+        <p class="m-0 opacity-75 mt-1">即時統計分析與每日/每週銷售趨勢</p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <label for="monthPicker" class="fw-medium text-nowrap m-0 text-white">選擇月份：</label>
+        <input type="month" id="monthPicker" class="form-control" style="width: auto;">
+        <button class="btn btn-light fw-bold text-primary px-3" onclick="exportToCSV()">匯出 CSV</button>
+      </div>
+    </div>
+
+    <!-- KPI 卡片列 -->
+    <div class="row g-3 mb-4">
+      <!-- 總營業額 -->
+      <div class="col-sm-6 col-lg-3">
+        <div class="card card-kpi">
+          <div class="card-body d-flex align-items-center gap-3 p-4">
+            <div class="kpi-icon-wrapper" style="background-color: var(--success-light); color: var(--success);">
+              $
+            </div>
+            <div>
+              <div class="kpi-title">本月總營業額</div>
+              <div class="kpi-value" id="kpiRevenue">$ 0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 總訂單數 -->
+      <div class="col-sm-6 col-lg-3">
+        <div class="card card-kpi">
+          <div class="card-body d-flex align-items-center gap-3 p-4">
+            <div class="kpi-icon-wrapper" style="background-color: var(--primary-light); color: var(--primary);">
+              📝
+            </div>
+            <div>
+              <div class="kpi-title">總訂單數</div>
+              <div class="kpi-value" id="kpiOrders">0 筆</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 平均客單價 -->
+      <div class="col-sm-6 col-lg-3">
+        <div class="card card-kpi">
+          <div class="card-body d-flex align-items-center gap-3 p-4">
+            <div class="kpi-icon-wrapper" style="background-color: var(--info-light); color: var(--info);">
+              ⚖️
+            </div>
+            <div>
+              <div class="kpi-title">平均客單價 (AOV)</div>
+              <div class="kpi-value" id="kpiAOV">$ 0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 熱銷冠軍 -->
+      <div class="col-sm-6 col-lg-3">
+        <div class="card card-kpi">
+          <div class="card-body d-flex align-items-center gap-3 p-4">
+            <div class="kpi-icon-wrapper" style="background-color: var(--warning-light); color: var(--warning);">
+              🏆
+            </div>
+            <div>
+              <div class="kpi-title">熱銷冠軍 (銷量)</div>
+              <div class="kpi-value fs-5 fw-bold text-truncate" id="kpiTopSeller" style="max-width: 140px; margin-top: 10px;">無</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 圖表區域 (第一列) -->
+    <div class="row">
+      <!-- 每日營業趨勢 -->
+      <div class="col-lg-8">
+        <div class="card card-chart">
+          <div class="card-header">每日營業額趨勢 ($)</div>
+          <div class="card-body">
+            <div style="height: 300px; position: relative;">
+              <canvas id="dailyChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 品項銷售圓餅圖 -->
+      <div class="col-lg-4">
+        <div class="card card-chart">
+          <div class="card-header">商品銷售銷量佔比</div>
+          <div class="card-body">
+            <div style="height: 300px; position: relative;">
+              <canvas id="itemChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 圖表區域 (第二列) -->
+    <div class="row">
+      <!-- 每週營業趨勢 -->
+      <div class="col-lg-4">
+        <div class="card card-chart">
+          <div class="card-header">每週營業額對比 (標準日曆週)</div>
+          <div class="card-body">
+            <div style="height: 300px; position: relative;">
+              <canvas id="weeklyChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 每日詳細表格 -->
+      <div class="col-lg-8">
+        <div class="table-container">
+          <h5 class="fw-bold mb-3">每日銷售明細</h5>
+          <div class="table-responsive" style="max-height: 290px; overflow-y: auto;">
+            <table class="table table-hover align-middle">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th>日期</th>
+                  <th>訂單數</th>
+                  <th>營業額</th>
+                  <th>平均客單價</th>
+                </tr>
+              </thead>
+              <tbody id="detailTableBody">
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">請先載入資料...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 引入 Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- 引入 Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // Supabase 連線資訊 (自動從 index.html 繼承設定好的金鑰)
+    const SUPABASE_URL = 'https://kunjdfvluaoyfszocfzb.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_B_-aIszU8wV0RyFnXwid8g_BMc1OVv2';
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    let selectedMonth = ''; // 格式: YYYY-MM
+    let monthlyOrders = [];
+
+    // 圖表實例儲存
+    let dailyChartInstance = null;
+    let weeklyChartInstance = null;
+    let itemChartInstance = null;
+
+    // 當前計算完畢的資料快照 (供 CSV 匯出使用)
+    let processedDailyData = {};
+
+    // 1. 處理密碼登入
+    function handleLogin(e) {
+      e.preventDefault();
+      const pwdInput = document.getElementById('adminPassword');
+      const feedback = document.getElementById('loginFeedback');
+      
+      // 設定管理者簡易密碼
+      if (pwdInput.value === 'admin123') {
+        document.getElementById('authContainer').style.display = 'none';
+        document.getElementById('dashboardContainer').style.display = 'block';
+        initDashboard();
+      } else {
+        pwdInput.classList.add('is-invalid');
+        feedback.style.display = 'block';
+        pwdInput.value = '';
+        pwdInput.focus();
+      }
+    }
+
+    // 當密碼框被重新點選時清除錯誤狀態
+    document.getElementById('adminPassword').addEventListener('input', function() {
+      this.classList.remove('is-invalid');
+      document.getElementById('loginFeedback').style.display = 'none';
+    });
+
+    // 2. 初始化儀表板
+    function initDashboard() {
+      // 預設月份設定為本月
+      const today = new Date();
+      const curYear = today.getFullYear();
+      const curMonth = String(today.getMonth() + 1).padStart(2, '0');
+      selectedMonth = `${curYear}-${curMonth}`;
+      
+      const monthPicker = document.getElementById('monthPicker');
+      monthPicker.value = selectedMonth;
+      monthPicker.addEventListener('change', (e) => {
+        selectedMonth = e.target.value;
+        loadMonthlyData();
+      });
+
+      loadMonthlyData();
+    }
+
+    function toggleLoading(show, text = "處理中...") {
+      const overlay = document.getElementById('loadingOverlay');
+      const overlayText = document.getElementById('loadingText');
+      overlayText.innerText = text;
+      overlay.style.display = show ? 'flex' : 'none';
+    }
+
+    // 3. 從 Supabase 抓取指定月份的訂單與品項資料
+    async function loadMonthlyData() {
+      if (!selectedMonth) return;
+      toggleLoading(true, "讀取資料庫中...");
+
+      try {
+        if (!supabaseClient) {
+          throw new Error("Supabase 客戶端尚未初始化，請檢查連線常數設定。");
+        }
+
+        // 解析篩選起迄時間 (以當地時間 1 號開始，到下個月 1 號為止)
+        const [year, month] = selectedMonth.split('-').map(Number);
+        
+        // 取得該月的第一秒 (當地時間)
+        const startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
+        // 取得下個月第一秒 (當地時間)
+        const endDate = new Date(year, month, 1, 0, 0, 0, 0);
+
+        // 轉換為 ISO 格式字串傳送給 PostgreSQL
+        const startISO = startDate.toISOString();
+        const endISO = endDate.toISOString();
+
+        // 關聯查詢訂單及其所有關聯品項
+        const { data, error } = await supabaseClient
+          .from('orders')
+          .select(`
+            id,
+            total_price,
+            created_at,
+            order_items (
+              menu_item,
+              qty
+            )
+          `)
+          .gte('created_at', startISO)
+          .lt('created_at', endISO)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        
+        monthlyOrders = data || [];
+        processAndRenderReport(year, month);
+
+      } catch (err) {
+        console.error(err);
+        alert("讀取報表資料失敗！錯誤資訊: " + err.message);
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    // 4. 統計運算與渲染
+    function processAndRenderReport(year, month) {
+      const daysInMonth = new Date(year, month, 0).getDate();
+      
+      // A. 初始化當月每日統計容器 (確保沒有訂單的日期也會呈現 0)
+      const dailyData = {};
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        dailyData[dateStr] = {
+          date: dateStr,
+          revenue: 0,
+          orderCount: 0,
+        };
+      }
+
+      // B. 初始化每週營業額 (當月最多劃分為 6 個標準日曆週)
+      const weeklyData = {
+        "第 1 週": 0,
+        "第 2 週": 0,
+        "第 3 週": 0,
+        "第 4 週": 0,
+        "第 5 週": 0,
+        "第 6 週": 0
+      };
+
+      // C. 初始化熱銷品項統計
+      const itemSales = {};
+
+      let totalRevenue = 0;
+      let totalOrders = monthlyOrders.length;
+
+      // D. 遍歷每筆訂單進行歸檔累加
+      monthlyOrders.forEach(order => {
+        // 將 timestamptz 轉換成本地日期字串
+        const orderDate = new Date(order.created_at);
+        const localDateStr = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}-${String(orderDate.getDate()).padStart(2, '0')}`;
+        
+        const price = order.total_price || 0;
+        totalRevenue += price;
+
+        // 每日營業累加
+        if (dailyData[localDateStr]) {
+          dailyData[localDateStr].revenue += price;
+          dailyData[localDateStr].orderCount += 1;
+        }
+
+        // 每週營業額累加
+        const weekName = getCalendarWeekName(orderDate);
+        if (weeklyData[weekName] !== undefined) {
+          weeklyData[weekName] += price;
+        }
+
+        // 銷量明細累加
+        if (order.order_items) {
+          order.order_items.forEach(item => {
+            const name = item.menu_item;
+            const qty = item.qty || 1;
+            itemSales[name] = (itemSales[name] || 0) + qty;
+          });
+        }
+      });
+
+      // 保存統計數據 snapshot 供 CSV 匯出使用
+      processedDailyData = dailyData;
+
+      // E. 更新 KPI 元件
+      document.getElementById('kpiRevenue').innerText = `$ ${totalRevenue.toLocaleString()}`;
+      document.getElementById('kpiOrders').innerText = `${totalOrders} 筆`;
+      
+      const aov = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+      document.getElementById('kpiAOV').innerText = `$ ${aov.toLocaleString()}`;
+
+      // 找出銷量最高的品項
+      let topSellerName = "無";
+      let topSellerQty = 0;
+      for (const [name, qty] of Object.entries(itemSales)) {
+        if (qty > topSellerQty) {
+          topSellerName = name;
+          topSellerQty = qty;
+        }
+      }
+      document.getElementById('kpiTopSeller').innerText = topSellerQty > 0 ? `${topSellerName} (${topSellerQty}份)` : '無';
+
+      // F. 繪製圖表
+      renderDailyChart(dailyData);
+      renderWeeklyChart(weeklyData);
+      renderItemChart(itemSales);
+
+      // G. 渲染明細表格
+      renderDetailTable(dailyData);
+    }
+
+    // 5. 計算標準日曆週的名稱 (週一至週日為一週)
+    function getCalendarWeekName(date) {
+      const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+      // 1 號是星期幾 (0 = 週日, 1 = 週一, 2 = 週二...)
+      let firstDayOfWeek = firstDayOfMonth.getDay();
+      if (firstDayOfWeek === 0) firstDayOfWeek = 7; // 週日轉為 7
+
+      const dayOfMonth = date.getDate();
+      // 計算相對於週一的偏移度，除以 7 取整數上限
+      const weekIndex = Math.ceil((dayOfMonth + firstDayOfWeek - 1) / 7);
+      return `第 ${weekIndex} 週`;
+    }
+
+    // 6. 渲染每日營業趨勢圖 (折線圖)
+    function renderDailyChart(dailyData) {
+      const labels = Object.keys(dailyData).map(date => date.split('-')[2] + ' 號');
+      const dataPoints = Object.values(dailyData).map(d => d.revenue);
+
+      const ctx = document.getElementById('dailyChart').getContext('2d');
+      if (dailyChartInstance) dailyChartInstance.destroy();
+
+      // 建立漸層色背景
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, 'rgba(79, 70, 229, 0.4)');
+      gradient.addColorStop(1, 'rgba(79, 70, 229, 0.0)');
+
+      dailyChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '當日營業額',
+            data: dataPoints,
+            borderColor: '#4f46e5',
+            borderWidth: 3,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#4f46e5',
+            pointRadius: 3,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f3f4f6' }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    // 7. 渲染每週對比圖 (柱狀圖)
+    function renderWeeklyChart(weeklyData) {
+      const labels = Object.keys(weeklyData).filter(w => weeklyData[w] > 0 || w === "第 1 週" || w === "第 2 週" || w === "第 3 週" || w === "第 4 週");
+      const dataPoints = labels.map(w => weeklyData[w]);
+
+      const ctx = document.getElementById('weeklyChart').getContext('2d');
+      if (weeklyChartInstance) weeklyChartInstance.destroy();
+
+      weeklyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '每週營業額',
+            data: dataPoints,
+            backgroundColor: 'rgba(168, 85, 247, 0.85)', // 紫色
+            hoverBackgroundColor: '#a855f7',
+            borderRadius: 8,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f3f4f6' }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    // 8. 渲染品項銷量佔比圓餅圖 (Doughnut)
+    function renderItemChart(itemSales) {
+      const entries = Object.entries(itemSales).sort((a, b) => b[1] - a[1]);
+      
+      // 取前 5 名，其餘的歸類為「其他」
+      const labels = [];
+      const dataPoints = [];
+      let othersSum = 0;
+
+      entries.forEach(([name, qty], idx) => {
+        if (idx < 5) {
+          labels.push(name);
+          dataPoints.push(qty);
+        } else {
+          othersSum += qty;
+        }
+      });
+
+      if (othersSum > 0) {
+        labels.push("其他");
+        dataPoints.push(othersSum);
+      }
+
+      const ctx = document.getElementById('itemChart').getContext('2d');
+      if (itemChartInstance) itemChartInstance.destroy();
+
+      if (labels.length === 0) {
+        // 無銷售數據時顯示提示
+        labels.push("無銷售數據");
+        dataPoints.push(1);
+      }
+
+      const colors = [
+        '#3b82f6', // 藍
+        '#10b981', // 綠
+        '#f59e0b', // 黃
+        '#ec4899', // 粉
+        '#8b5cf6', // 紫
+        '#6b7280'  // 灰
+      ];
+
+      itemChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: dataPoints,
+            backgroundColor: labels[0] === "無銷售數據" ? ['#e5e7eb'] : colors.slice(0, labels.length),
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { boxWidth: 12, padding: 10 }
+            }
+          },
+          cutout: '60%'
+        }
+      });
+    }
+
+    // 9. 渲染每日明細表格
+    function renderDetailTable(dailyData) {
+      const tbody = document.getElementById('detailTableBody');
+      tbody.innerHTML = '';
+
+      const rows = Object.values(dailyData).reverse(); // 日期降序排列 (最新在上面)
+
+      let hasData = false;
+      rows.forEach(d => {
+        if (d.revenue > 0) {
+          hasData = true;
+          const aovValue = d.orderCount > 0 ? Math.round(d.revenue / d.orderCount) : 0;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="fw-medium">${d.date}</td>
+            <td>${d.orderCount} 筆</td>
+            <td class="text-success fw-semibold">$ ${d.revenue.toLocaleString()}</td>
+            <td>$ ${aovValue.toLocaleString()}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+
+      if (!hasData) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="text-center text-muted py-4">🔍 該月份查無銷售數據</td>
+          </tr>
+        `;
+      }
+    }
+
+    // 10. 匯出 CSV 檔
+    function exportToCSV() {
+      if (!processedDailyData || Object.keys(processedDailyData).length === 0) {
+        alert("無可用數據可匯出！");
+        return;
+      }
+
+      let csvContent = "\uFEFF"; // 新增 BOM 避免 Excel 開啟時中文亂碼
+      csvContent += "日期,訂單數,當日營業額,平均客單價 (AOV)\n";
+
+      Object.values(processedDailyData).forEach(d => {
+        const aovValue = d.orderCount > 0 ? Math.round(d.revenue / d.orderCount) : 0;
+        csvContent += `${d.date},${d.orderCount} 筆,${d.revenue},${aovValue}\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `點餐系統銷售報表_${selectedMonth}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
