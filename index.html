@@ -79,7 +79,12 @@
       background-color: #D8EFDC !important;  /* 滑過時背景色 */
       color: #6c757d !important;             /* 滑過時字體色 */
     }
-    
+
+    /* 僅針對該卡片修改背景色 */
+    #side-card {
+      background-color: #F8F8F8 !important;
+    }    
+
     /* 停用時的狀態 */
     .btn-check:disabled + .btn-flat-style {
       background-color: #CCCCCC !important;
@@ -164,8 +169,8 @@
     <hr>
 
     <h5 class="fw-bold my-3 text-dark">單點列表：</h5>
-    <div class="card mb-4">
-      <div class="card-body" id="sideItemsContainer"></div>
+    <div class="card mb-4" id="side-card">
+     <div class="card-body" id="sideItemsContainer"></div>
     </div>
 
     <div class="card total-card mb-4">
