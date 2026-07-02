@@ -175,6 +175,7 @@
         <label for="monthPicker" class="fw-medium text-nowrap m-0 text-white">選擇月份：</label>
         <input type="month" id="monthPicker" class="form-control" style="width: auto;">
         <button class="btn btn-light fw-bold text-primary px-3" onclick="exportToCSV()">匯出 CSV</button>
+        <button class="btn btn-warning fw-bold px-3 text-dark" onclick="window.location.href='admin_orders.html'">每日訂單明細</button>
       </div>
     </div>
 
@@ -326,6 +327,15 @@
     // 當前計算完畢的資料快照 (供 CSV 匯出使用)
     let processedDailyData = {};
 
+    // 0. 頁面載入時檢查是否已登入
+    document.addEventListener('DOMContentLoaded', () => {
+      if (sessionStorage.getItem('admin_logged_in') === 'true') {
+        document.getElementById('authContainer').style.display = 'none';
+        document.getElementById('dashboardContainer').style.display = 'block';
+        initDashboard();
+      }
+    });
+
     // 1. 處理密碼登入
     function handleLogin(e) {
       e.preventDefault();
@@ -334,6 +344,7 @@
       
       // 設定管理者簡易密碼
       if (pwdInput.value === 'admin123') {
+        sessionStorage.setItem('admin_logged_in', 'true');
         document.getElementById('authContainer').style.display = 'none';
         document.getElementById('dashboardContainer').style.display = 'block';
         initDashboard();
