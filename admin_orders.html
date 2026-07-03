@@ -246,6 +246,14 @@
 
     let currentMonthData = {}; // 儲存 { "YYYY-MM-DD": revenue }
 
+    // 儲存最新的菜單價格以便計算小計
+    let globalSetupData = {
+      singleComboPrices: {},
+      comboTypePrices: { "單點": 0, "雙拼": 120, "三拼": 125, "四拼": 130 },
+      upgradePrices: {},
+      sidePrices: {}
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
       if (sessionStorage.getItem('admin_logged_in') === 'true') {
         document.getElementById('authContainer').style.display = 'none';
@@ -282,8 +290,27 @@
       document.getElementById('loadingText').innerText = text;
     }
 
+    // 取得最新菜單價格供小計計算
+    async function fetchMenuPrices() {
+      try {
+        if (!supabaseClient) return;
+        const { data, error } = await supabaseClient.from('menu_items').select('*');
+        if (error) throw error;
+        
+        data.forEach(item => {
+          const price = item.price || 0;
+          if (item.category === 'main') globalSetupData.singleComboPrices[item.name] = price;
+          else if (item.category === 'side') globalSetupData.sidePrices[item.name] = price;
+          else if (item.category === 'upgrade') globalSetupData.upgradePrices[item.name] = price;
+          else if (item.category === 'combo') globalSetupData.comboTypePrices[item.name] = price;
+        });
+      } catch (err) {
+        console.warn("取得菜單價格失敗", err);
+      }
+    }
+
     // 初始化頁面
-    function initPage() {
+    async function initPage() {
       const today = new Date();
       const curYear = today.getFullYear();
       const curMonth = String(today.getMonth() + 1).padStart(2, '0');
@@ -292,6 +319,8 @@
       monthPicker.value = `${curYear}-${curMonth}`;
       
       monthPicker.addEventListener('change', loadMonthData);
+      
+      await fetchMenuPrices();
       loadMonthData(); // 預設載入本月
     }
 
@@ -493,9 +522,24 @@
             const comboItems = (order.order_items || []).filter(item => item.combo_id === combo.id);
             const dishesStr = comboItems.map(i => i.menu_item).join(', ');
             
+            // 計算組合餐小計
+            let basePrice = 0;
+            if (combo.combo_type === "單點") {
+              const firstDish = comboItems.length > 0 ? comboItems[0].menu_item : "";
+              basePrice = globalSetupData.singleComboPrices[firstDish] || 0;
+            } else {
+              basePrice = globalSetupData.comboTypePrices[combo.combo_type] || 0;
+            }
+            
+            const upgradePrice = globalSetupData.upgradePrices[combo.upgrade_name] || 0;
+            const subtotal = (basePrice + upgradePrice) * (combo.qty || 1);
+            
             itemsHtml += `
               <div class="combo-section">
-                <div class="combo-title">📦 ${combo.combo_type} x ${combo.qty} <span class="badge bg-secondary ms-2">升級: ${combo.upgrade_name || '無'}</span></div>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="combo-title m-0">📦 ${combo.combo_type} x ${combo.qty} <span class="badge bg-secondary ms-2">升級: ${combo.upgrade_name || '無'}</span></div>
+                  <div class="fw-bold text-success">$${subtotal}</div>
+                </div>
                 <div class="combo-items">包含：${dishesStr || '無項目'}</div>
               </div>
             `;
@@ -507,7 +551,13 @@
         if (sideItems.length > 0) {
           itemsHtml += `<div class="side-section"><div class="fw-bold mb-2 text-dark">🍟 單點項目：</div>`;
           sideItems.forEach(side => {
-            itemsHtml += `<div class="ms-3 mb-1 text-secondary">• ${side.menu_item} <span class="fw-bold text-dark">x ${side.qty}</span></div>`;
+            const sidePrice = globalSetupData.sidePrices[side.menu_item] || 0;
+            const subtotal = sidePrice * (side.qty || 1);
+            itemsHtml += `
+              <div class="d-flex justify-content-between align-items-center ms-3 mb-1">
+                <div class="text-secondary">• ${side.menu_item} <span class="fw-bold text-dark">x ${side.qty}</span></div>
+                <div class="fw-bold text-success">$${subtotal}</div>
+              </div>`;
           });
           itemsHtml += `</div>`;
         }
