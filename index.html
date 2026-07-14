@@ -6,34 +6,36 @@
   <title>點餐系統</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* 預設網頁背景色 - 採用附圖主卡片的溫潤灰泥色 */
-    body { background-color: #DBD5BE; padding-bottom: 60px; transition: background-color 0.3s ease; }
+    /* 預設網頁背景色 */
+    body { background-color: #DBD5BE; padding-bottom: 60px; transition: background-color 0.3s ease; font-size: 1.1rem; }
     
-    /* 【新增】修改模式下的網頁背景色 */
+    /* 修改模式下的網頁背景色 */
     body.edit-mode { background-color: #fff3cd; } 
     
     .main-container { max-width: 700px; margin: 30px auto; }
 
-    /* 讀取/查詢舊訂單區塊底色 - 改為優雅的珍珠白與柔和淺邊框 */
+    /* 讀取/查詢舊訂單區塊底色 */
     .query-card { border: 1px solid #D8EFDC; border-radius: 10px; background-color: #F8F8F8; }
 
-    /* 組合餐卡片底色 - 改為純白基底搭配極淡灰色陰影 */
+    /* 組合餐卡片底色 */
     .combo-card { border: 1px solid #E9ECEF; border-radius: 10px; background-color: #F8F8F8; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
 
-    /* 組合餐內部容器底色 - 改為附圖的 Muted 淡霧灰 */
+    /* 組合餐內部容器底色 */
     .dish-radio-group { background-color: #FDFDFD; padding: 15px; border-radius: 8px; border: 1px solid #E9ECEF; }
-    .dish-row-label { font-size: 0.9rem; color: #6c757d; font-weight: bold; margin-bottom: 6px; }
+    
+    /* 標籤字體 */
+    .dish-row-label { font-size: 1.1rem; color: #6c757d; font-weight: bold; margin-bottom: 8px; }
     
     /* 橫向彈性容器 */
     .custom-btn-flex-container {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       width: 100%;
       overflow-x: auto;
-      padding-bottom: 4px;
+      padding-bottom: 6px;
     }
     
-    /* 【修改】強制取消所有按鈕的邊框，並調整特殊按鈕背景預設值 */
+    /* 強制取消所有按鈕的邊框 */
     .btn { border: none !important; }
     .btn-outline-primary { background-color: #E9ECEF; color: #507D4D; }
 
@@ -43,17 +45,31 @@
     /* 清空內容按鈕底色 */
     .btn-outline-danger { background-color: #EA6666; color: #F0F0F0; }
     
-    /* 讓按鈕等寬、縮小、不換行(主餐/升級選項「未選取」時的底色與滑鼠懸停) - 預設改為淡霧灰 */
+    /* 升級選項按鈕樣式 */
     .btn-flat-style {
       flex: 1 1 0%;
-      min-width: 65px;
+      min-width: 85px;
       background-color: #E9ECEF !important;
       color: #495057 !important;
       transition: all 0.2s ease;
-      font-size: 0.8rem;
-      padding: 6px 2px;
+      font-size: 1.1rem;       
+      padding: 14px 4px;        
       text-align: center;
       white-space: nowrap;
+    }
+
+    /* 【優化】主餐專用直書按鈕樣式 - 縮短至五個字高度，減少上下捲動 */
+    .btn-vertical-style {
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      min-width: 40px !important; 
+      height: 96px;             /* 調整至約 5 個字的高度 */
+      letter-spacing: 2px;       /* 微調字距，讓文字緊湊排列 */
+      padding: 6px 12px !important; /* 縮減上下內邊距 */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: normal;
     }
     
     /* 主餐/升級選項「未選取」時的底色與滑鼠懸停 */
@@ -76,8 +92,8 @@
 
     /* 單點/雙拼/三拼/四拼 滑過且「未選取」時的樣式 */
     .btn-check:not(:checked) + .btn-outline-primary:hover {
-      background-color: #D8EFDC !important;  /* 滑過時背景色 */
-      color: #6c757d !important;             /* 滑過時字體色 */
+      background-color: #D8EFDC !important;  
+      color: #6c757d !important;             
     }
 
     /* 僅針對該卡片修改背景色 */
@@ -93,46 +109,56 @@
       cursor: not-allowed;
     }
 
-    /* 單點區塊佈局調整 */
+    /* 單點區塊佈局與字體 */
     .side-item-row { 
      display: flex; 
      justify-content: space-between; 
      align-items: center; 
-     padding: 10px 0; 
+     padding: 14px 0;          
      border-bottom: 1px solid #edf0f2; 
-     background-color: #F8F8F8;      /* 背景色 */
+     background-color: #F8F8F8; 
+    }
+    .side-item-row span {
+      font-size: 1.1rem;
     }
 
     .side-item-row:last-child { border-bottom: none; }
     
     /* 「讀取訂單」按鈕色 */
     .btn-query { background-color: #FFE699; color: #6c757d; font-weight: bold; }
-    .combo-subtotal { font-size: 1.1rem; }
+    
+    /* 小計字體 */
+    .combo-subtotal { font-size: 1.25rem; }
 
     /* 「讀取訂單」按鈕滑過時的色彩變化 */
     .btn-query:hover {
-      background-color: #FFCC66;   /* 滑過時背景色 */
-      color: #495057;              /* 文字顏色稍微變深以增加對比 */
+      background-color: #FFCC66;   
+      color: #495057;              
       cursor: pointer;
     }
 
-    /* 金額總計卡片底色 - 改為清爽的白底配上深綠色虛線 */
+    /* 種類切換按鈕 */
+    .combo-type-segmented .btn {
+      padding: 14px 2px;
+      font-size: 1.1rem;
+    }
+
+    /* 金額總計卡片底色 */
     .total-card { border: 2px dashed #507D4D; background-color: #FFFFFF; }
     .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; font-size: 1.2rem; font-weight: bold; }
     
-    /* 核心優化：強迫計數器按鈕與輸入框內文寬度絕對等寬 */
-    .stepper-input { width: 44px; text-align: center; border-left: 0; border-right: 0; border-radius: 0; background-color: #fff !important; padding: 6px 0; }
-    
-    /* 強制設定操作按鈕的字元容器寬高，完美修正加減號不等寬問題 */
+    /* 計數器輸入框與按鈕 */
+    .stepper-input { width: 54px; text-align: center; border-left: 0; border-right: 0; border-radius: 0; background-color: #fff !important; padding: 12px 0; font-size: 1.25rem; }
     .btn-stepper-action {
-      width: 38px;
-      padding: 6px 0;
+      width: 52px;             
+      padding: 12px 0;         
       text-align: center;
       font-weight: bold;
       display: inline-block;
+      font-size: 1.35rem;       
     }
     
-    /* 自訂覆蓋 Bootstrap 主功能按鈕色彩 (新增組合、送出訂單) */
+    /* 自訂覆蓋 Bootstrap 主功能按鈕色彩 */
     #btnAddCombo { background-color: #7A9A78; border-color: #7A9A78; color: #FFFFFF; }
     #btnAddCombo:hover { background-color: #507D4D; }
     #btnSubmitOrder.btn-primary { background-color: #507D4D !important; color: #FFFFFF; }
@@ -148,42 +174,42 @@
   <div class="container main-container">
     <div class="card query-card mb-4">
       <div class="card-body">
-        <h5 class="card-title text-secondary fw-bold mb-3">修改/查詢舊訂單</h5>
-        <div class="input-group">
-          <input type="text" id="queryOrderId" class="form-control" placeholder="格式範例：20260613_103111">
-          <button class="btn btn-query" type="button" id="btnLoadOrder">讀取訂單</button>
+        <h5 class="card-title text-secondary fw-bold mb-3 fs-4">修改/查詢舊訂單</h5>
+        <div class="input-group input-group-lg">
+          <input type="text" id="queryOrderId" class="form-control fs-5" placeholder="格式範例：20260613_103111">
+          <button class="btn btn-query fs-5" type="button" id="btnLoadOrder">讀取訂單</button>
         </div>
-        <p style="color: #CC3300; font-weight: bold; font-size: 14px; margin-top: 8px; margin-bottom: 0;">
+        <p style="color: #CC3300; font-weight: bold; font-size: 15px; margin-top: 8px; margin-bottom: 0;">
           💡 請記下訂單號，以便需要時修改訂單內容
         </p>
       </div>
     </div>
 
     <div class="mb-4">
-      <button type="button" class="btn btn-outline-danger fw-bold w-100" id="btnResetOrder">清空內容</button>
+      <button type="button" class="btn btn-outline-danger fw-bold w-100 py-3 fs-4" id="btnResetOrder">清空內容</button>
     </div>
 
     <div id="comboContainer"></div>
 
     <div class="mb-4">
-      <button type="button" class="btn btn-secondary w-100 fw-bold" id="btnAddCombo">+ 新增組合</button>
+      <button type="button" class="btn btn-secondary w-100 fw-bold py-3 fs-4" id="btnAddCombo">+ 新增組合</button>
     </div>
 
     <hr>
 
-    <h5 class="fw-bold my-3 text-dark">單點列表：</h5>
+    <h5 class="fw-bold my-3 text-dark fs-4">單點列表：</h5>
     <div class="card mb-4" id="side-card">
      <div class="card-body" id="sideItemsContainer"></div>
     </div>
 
     <div class="card total-card mb-4">
       <div class="card-body d-flex justify-content-between align-items-center py-3">
-        <h4 class="m-0 fw-bold text-primary">金額總計</h4>
-        <h3 class="m-0 fw-bold text-danger">$ <span id="grandTotalDisplay">0</span></h3>
+        <h4 class="m-0 fw-bold text-primary fs-3">金額總計</h4>
+        <h3 class="m-0 fw-bold text-danger fs-2">$ <span id="grandTotalDisplay">0</span></h3>
       </div>
     </div>
 
-    <button type="button" class="btn btn-primary w-100 py-3 fs-5 fw-bold" id="btnSubmitOrder">送出訂單</button>
+    <button type="button" class="btn btn-primary w-100 py-3 fs-4 fw-bold" id="btnSubmitOrder">送出訂單</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -196,7 +222,7 @@
 
     let globalSetupData = null;
     let comboCounter = 0;
-    let isCurrentOrderClosed = false; // 紀錄當前訂單是否已被結單
+    let isCurrentOrderClosed = false;
 
     function getFormattedTimestamp() {
       const n = new Date();
@@ -205,7 +231,6 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       fetchSetupConfig().then(() => {
-        // 若網址帶有 orderId 參數，則自動帶入並載入舊訂單
         const urlParams = new URLSearchParams(window.location.search);
         const orderId = urlParams.get('orderId');
         if (orderId) {
@@ -232,10 +257,7 @@
       document.querySelectorAll('.side-qty-input').forEach(input => input.value = 0);
       comboCounter = 0;
       isCurrentOrderClosed = false;
-      
-      // 【新增】重置時移除修改狀態背景色
       document.body.classList.remove('edit-mode');
-      
       addComboCard();
       calculateLiveTotal();
     }
@@ -244,7 +266,7 @@
       toggleLoading(true, "系統資料載入中...");
       try {
         if (!supabaseClient) {
-          throw new Error("Supabase 客戶端尚未初始化，請確認連接資訊是否正確填寫。");
+          throw new Error("Supabase 客戶端尚未初始化。");
         }
         
         const { data, error } = await supabaseClient.from('menu_items').select('*');
@@ -291,7 +313,7 @@
         toggleLoading(false);
       } catch (err) {
         console.error(err);
-        alert("無法取得設定，請檢查網路連線或資料表。\n錯誤資訊: " + err.message);
+        alert("無法取得設定。\n錯誤資訊: " + err.message);
         toggleLoading(false);
       }
     }
@@ -303,8 +325,8 @@
         const row = document.createElement('div');
         row.className = 'side-item-row';
         row.innerHTML = `
-          <span class="fw-medium text-secondary">${item.name} <span class="text-muted">($${item.price})</span></span>
-          <div class="input-group" style="width: 120px;">
+          <span class="fw-medium text-secondary me-2">${item.name} <span class="text-muted">($${item.price})</span></span>
+          <div class="input-group flex-shrink-0" style="width: 158px;">
             <button class="btn btn-outline-secondary btn-stepper-action btn-side-minus" type="button">-</button>
             <input type="text" class="form-control stepper-input side-qty-input" data-name="${item.name}" value="0" readonly>
             <button class="btn btn-outline-secondary btn-stepper-action btn-side-plus" type="button">+</button>
@@ -358,8 +380,8 @@
       card.id = id;
       
       card.innerHTML = `
-        <div class="row g-2 align-items-center mb-3">
-          <div class="col-7 col-sm-8">
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+          <div class="flex-grow-1" style="min-width: 220px;">
             <div class="btn-group w-100 combo-type-segmented" role="group">
               <input type="radio" class="btn-check type-radio" name="type_${id}" id="type1_${id}" value="1" checked>
               <label class="btn btn-outline-primary fw-bold" for="type1_${id}">單點</label>
@@ -371,8 +393,8 @@
               <label class="btn btn-outline-primary fw-bold" for="type4_${id}">四拼</label>
             </div>
           </div>
-          <div class="col-5 col-sm-4 d-flex justify-content-end">
-            <div class="input-group" style="width: 120px;">
+          <div class="d-flex justify-content-end flex-grow-1 flex-sm-grow-0">
+            <div class="input-group" style="width: 158px;">
               <button class="btn btn-outline-secondary btn-stepper-action btn-minus" type="button">-</button>
               <input type="text" class="form-control stepper-input combo-qty-input" value="1" readonly>
               <button class="btn btn-outline-secondary btn-stepper-action btn-plus" type="button">+</button>
@@ -395,7 +417,7 @@
         </div>
         
         <div class="d-flex justify-content-between align-items-center mt-3">
-          <button type="button" class="btn btn-outline-danger btn-sm fw-bold btn-delete-combo">刪除此組合</button>
+          <button type="button" class="btn btn-outline-danger fw-bold btn-delete-combo py-2 px-3 fs-5">刪除此組合</button>
           <div class="text-danger fw-bold combo-subtotal">小計: $0</div>
         </div>
       `;
@@ -469,7 +491,7 @@
           
           optionsFlex.innerHTML += `
             <input type="radio" class="btn-check dish-radio-item" name="dish_${cardId}_row${r}" id="${radioId}" value="${d.name}" ${isChecked ? 'checked' : ''}>
-            <label class="btn btn-flat-style fw-medium" for="${radioId}">${d.name}</label>
+            <label class="btn btn-flat-style btn-vertical-style fw-medium" for="${radioId}">${d.name}</label>
           `;
         });
 
@@ -607,14 +629,11 @@
         });
 
         calculateLiveTotal();
-        
-        // 【新增】成功載入後，為 body 加上 edit-mode 樣式變更背景色
         document.body.classList.add('edit-mode');
         
         if (isCurrentOrderClosed) {
           alert("【提示】此訂單已結單，鎖定修改功能！");
         } else {
-          // 如果不是被 URL 跳轉觸發的才顯示成功提示 (避免跳轉過來一直彈窗)
           const urlParams = new URLSearchParams(window.location.search);
           if (urlParams.get('orderId') !== orderId) {
             alert("訂單載入成功！已進入修改模式。");
@@ -730,10 +749,7 @@
 
         alert("送出成功！編號：" + orderId);
         document.getElementById('queryOrderId').value = orderId;
-        
-        // 【新增】送出成功後，移除修改狀態背景色
         document.body.classList.remove('edit-mode');
-        
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
       } catch (err) {
