@@ -6,34 +6,34 @@
   <title>點餐系統</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* 預設網頁背景色 - 縮減底部的安全留白 */
-    body { background-color: #DBD5BE; padding-bottom: 30px; transition: background-color 0.3s ease; font-size: 1.1rem; }
+    /* 預設網頁背景色 - 採用溫潤灰泥色 */
+    body { background-color: #DBD5BE; padding-bottom: 30px; transition: background-color 0.3s ease; }
     
     /* 修改模式下的網頁背景色 */
     body.edit-mode { background-color: #fff3cd; } 
     
-    /* 【全網優化】緊湊化網頁上下邊距 */
+    /* 緊湊型容器，縮減上下外邊距 */
     .main-container { max-width: 700px; margin: 15px auto; }
 
     /* 讀取/查詢舊訂單區塊底色 */
-    .query-card { border: 1px solid #D8EFDC; border-radius: 10px; background-color: #F8F8F8; }
+    .query-card { border: 1px solid #D8EFDC; border-radius: 10px; background-color: #F8F8F8; margin-bottom: 12px !important; }
 
-    /* 【全網優化】縮減組合餐卡片的上下內邊距與外邊距 */
-    .combo-card { border: 1px solid #E9ECEF; border-radius: 10px; background-color: #F8F8F8; padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    /* 組合餐卡片底色 - 縮減內外邊距 (padding 12px) */
+    .combo-card { border: 1px solid #E9ECEF; border-radius: 10px; background-color: #F8F8F8; padding: 12px; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
 
-    /* 【全網優化】縮減組合餐內部容器內邊距 */
-    .dish-radio-group { background-color: #FDFDFD; padding: 8px 12px; border-radius: 8px; border: 1px solid #E9ECEF; }
+    /* 組合餐內部容器底色 - 縮減內邊距 (padding 8px 10px) */
+    .dish-radio-group { background-color: #FDFDFD; padding: 8px 10px; border-radius: 8px; border: 1px solid #E9ECEF; margin-bottom: 8px !important; }
     
-    /* 橫向彈性容器 - 縮減底部的滾動條留白 */
+    /* 橫向彈性容器 */
     .custom-btn-flex-container {
       display: flex;
-      gap: 8px;
+      gap: 4px;
       width: 100%;
       overflow-x: auto;
       padding-bottom: 2px;
     }
     
-    /* 強制取消所有按鈕的邊框 */
+    /* 強制取消所有按鈕邊框 */
     .btn { border: none !important; }
     .btn-outline-primary { background-color: #E9ECEF; color: #507D4D; }
 
@@ -43,61 +43,24 @@
     /* 清空內容按鈕底色 */
     .btn-outline-danger { background-color: #EA6666; color: #F0F0F0; }
     
-    /* 升級選項按鈕樣式（保持原大小） */
+    /* 扁平化按鈕樣式 */
     .btn-flat-style {
       flex: 1 1 0%;
-      min-width: 85px;
+      min-width: 55px;
       background-color: #E9ECEF !important;
       color: #495057 !important;
       transition: all 0.2s ease;
-      font-size: 1.1rem;       
-      padding: 14px 4px;        
+      font-size: 0.8rem;
+      padding: 5px 2px;
       text-align: center;
       white-space: nowrap;
     }
-
-    /* 主餐專用直書按鈕樣式（保持原大小） */
-    .btn-vertical-style {
-      writing-mode: vertical-rl;
-      text-orientation: upright;
-      min-width: 40px !important; 
-      height: 96px;             
-      letter-spacing: 2px;       
-      padding: 6px 12px !important; 
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      white-space: normal;
-    }
     
-    /* 主餐/升級選項「未選取」時的底色與滑鼠懸停 */
-    .btn-flat-style:hover {
-      background-color: #D8EFDC !important;
-    }
-    
-    /* 主餐/升級選項「被選取」時的底色  */
-    .btn-check:checked + .btn-flat-style {
-      background-color: #507D4D !important;
-      color: #fff !important;
-      font-weight: bold;
-    }
-    
-    /* 單點/雙拼/三拼/四拼 被選取時的底色 */
-    .btn-check:checked + .btn-outline-primary {
-      background-color: #507D4D !important;
-      color: #fff !important;
-    }
-
-    /* 單點/雙拼/三拼/四拼 滑過且「未選取」時的樣式 */
-    .btn-check:not(:checked) + .btn-outline-primary:hover {
-      background-color: #D8EFDC !important;  
-      color: #6c757d !important;             
-    }
-
-    /* 僅針對該卡片修改背景色 */
-    #side-card {
-      background-color: #F8F8F8 !important;
-    }    
+    /* 滑鼠懸停與選取樣式 */
+    .btn-flat-style:hover { background-color: #D8EFDC !important; }
+    .btn-check:checked + .btn-flat-style { background-color: #507D4D !important; color: #fff !important; font-weight: bold; }
+    .btn-check:checked + .btn-outline-primary { background-color: #507D4D !important; color: #fff !important; }
+    .btn-check:not(:checked) + .btn-outline-primary:hover { background-color: #D8EFDC !important; color: #6c757d !important; }
 
     /* 停用時的狀態 */
     .btn-check:disabled + .btn-flat-style {
@@ -107,62 +70,42 @@
       cursor: not-allowed;
     }
 
-    /* 【全網優化】單點區塊佈局 - 縮減上下間距 */
+    /* 單點區塊佈局調整 */
+    #side-card { background-color: #F8F8F8 !important; }
     .side-item-row { 
-     display: flex; 
-     justify-content: space-between; 
-     align-items: center; 
-     padding: 8px 0;          
-     border-bottom: 1px solid #edf0f2; 
-     background-color: #F8F8F8; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      padding: 6px 0; 
+      border-bottom: 1px solid #edf0f2; 
+      background-color: #F8F8F8; 
     }
-    .side-item-row span {
-      font-size: 1.1rem;
-    }
-
     .side-item-row:last-child { border-bottom: none; }
     
     /* 「讀取訂單」按鈕色 */
     .btn-query { background-color: #FFE699; color: #6c757d; font-weight: bold; }
-    
-    /* 小計字體 */
-    .combo-subtotal { font-size: 1.25rem; }
+    .btn-query:hover { background-color: #FFCC66; color: #495057; cursor: pointer; }
 
-    /* 「讀取訂單」按鈕滑過時的色彩變化 */
-    .btn-query:hover {
-      background-color: #FFCC66;   
-      color: #495057;              
-      cursor: pointer;
-    }
-
-    /* 種類切換按鈕 */
-    .combo-type-segmented .btn {
-      padding: 14px 2px;
-      font-size: 1.1rem;
-    }
+    .combo-subtotal { font-size: 1.05rem; }
 
     /* 金額總計卡片底色 */
     .total-card { border: 2px dashed #507D4D; background-color: #FFFFFF; }
     .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; font-size: 1.2rem; font-weight: bold; }
     
-    /* 計數器輸入框與按鈕 */
-    .stepper-input { width: 54px; text-align: center; border-left: 0; border-right: 0; border-radius: 0; background-color: #fff !important; padding: 12px 0; font-size: 1.25rem; }
-    .btn-stepper-action {
-      width: 52px;             
-      padding: 12px 0;         
-      text-align: center;
-      font-weight: bold;
-      display: inline-block;
-      font-size: 1.35rem;       
-    }
+    /* 計數器按鈕與輸入框 */
+    .stepper-input { width: 40px; text-align: center; border-left: 0; border-right: 0; border-radius: 0; background-color: #fff !important; padding: 4px 0; font-size: 0.9rem; }
+    .btn-stepper-action { width: 32px; padding: 4px 0; text-align: center; font-weight: bold; display: inline-block; font-size: 0.9rem; }
     
-    /* 自訂覆蓋 Bootstrap 主功能按鈕色彩 */
+    /* 自訂按鈕色彩 */
     #btnAddCombo { background-color: #7A9A78; border-color: #7A9A78; color: #FFFFFF; }
     #btnAddCombo:hover { background-color: #507D4D; }
     #btnSubmitOrder.btn-primary { background-color: #507D4D !important; color: #FFFFFF; }
     #btnSubmitOrder.btn-primary:hover { background-color: #3E633C !important; }
     .text-primary { color: #507D4D !important; }
     .text-danger { color: #507D4D !important; }
+
+    /* 組合類型 5 個按鈕微調，確保行動裝置緊湊排列 */
+    .combo-type-segmented .btn { font-size: 0.8rem; padding: 6px 2px; }
   </style>
 </head>
 <body>
@@ -170,44 +113,54 @@
   <div id="loadingOverlay" class="loading-overlay" style="display:none;">處理中...</div>
 
   <div class="container main-container">
-    <div class="card query-card mb-2">
-      <div class="card-body py-3">
-        <h5 class="card-title text-secondary fw-bold mb-2 fs-4">修改/查詢舊訂單</h5>
-        <div class="input-group input-group-lg">
-          <input type="text" id="queryOrderId" class="form-control fs-5" placeholder="格式範例：20260613_103111">
-          <button class="btn btn-query fs-5" type="button" id="btnLoadOrder">讀取訂單</button>
+    <!-- 修改/查詢舊訂單區塊 -->
+    <div class="card query-card">
+      <div class="card-body p-3">
+        <h6 class="card-title text-secondary fw-bold mb-2">修改/查詢舊訂單</h6>
+        <div class="input-group input-group-sm">
+          <input type="text" id="queryOrderId" class="form-control" placeholder="格式範例：20260613_103111">
+          <button class="btn btn-query px-3" type="button" id="btnLoadOrder">讀取訂單</button>
         </div>
-        <p style="color: #CC3300; font-weight: bold; font-size: 15px; margin-top: 4px; margin-bottom: 0;">
+        <p style="color: #CC3300; font-weight: bold; font-size: 12px; margin-top: 5px; margin-bottom: 0;">
           💡 請記下訂單號，以便需要時修改訂單內容
         </p>
       </div>
     </div>
 
     <div class="mb-2">
-      <button type="button" class="btn btn-outline-danger fw-bold w-100 py-2 fs-4" id="btnResetOrder">清空內容</button>
+      <button type="button" class="btn btn-outline-danger btn-sm fw-bold w-100 py-1" id="btnResetOrder">清空內容</button>
     </div>
 
+    <!-- 組合餐放置容器 -->
     <div id="comboContainer"></div>
 
-    <div class="mb-2">
-      <button type="button" class="btn btn-secondary w-100 fw-bold py-2 fs-4" id="btnAddCombo">+ 新增組合</button>
+    <div class="mb-3">
+      <button type="button" class="btn btn-secondary btn-sm w-100 fw-bold py-2" id="btnAddCombo">+ 新增組合</button>
     </div>
 
     <hr class="my-2">
 
-    <h5 class="fw-bold my-2 text-dark fs-4">單點列表：</h5>
-    <div class="card mb-2" id="side-card">
-     <div class="card-body py-1" id="sideItemsContainer"></div>
+    <!-- 可折疊單點列表 (預設折疊) -->
+    <div class="d-flex justify-content-between align-items-center my-2" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#sideItemsCollapse" aria-expanded="false">
+      <h6 class="fw-bold m-0 text-dark">單點列表 <span class="text-muted fs-7">(點擊折疊/展開)</span></h6>
+      <span class="text-secondary small fw-bold" id="sideCollapseIcon">▲</span>
     </div>
-
-    <div class="card total-card mb-2">
-      <div class="card-body d-flex justify-content-between align-items-center py-2">
-        <h4 class="m-0 fw-bold text-primary fs-3">金額總計</h4>
-        <h3 class="m-0 fw-bold text-danger fs-2">$ <span id="grandTotalDisplay">0</span></h3>
+    
+    <div class="collapse" id="sideItemsCollapse">
+      <div class="card mb-3" id="side-card">
+        <div class="card-body py-1 px-3" id="sideItemsContainer"></div>
       </div>
     </div>
 
-    <button type="button" class="btn btn-primary w-100 py-2 fs-4 fw-bold" id="btnSubmitOrder">送出訂單</button>
+    <!-- 總計卡片 -->
+    <div class="card total-card mb-3">
+      <div class="card-body d-flex justify-content-between align-items-center py-2 px-3">
+        <h5 class="m-0 fw-bold text-primary">金額總計</h5>
+        <h4 class="m-0 fw-bold text-danger">$ <span id="grandTotalDisplay">0</span></h4>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-primary w-100 py-2.5 fs-5 fw-bold mb-3" id="btnSubmitOrder">送出訂單</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -240,6 +193,14 @@
       document.getElementById('btnResetOrder').addEventListener('click', resetOrder);
       document.getElementById('btnLoadOrder').addEventListener('click', loadOldOrder);
       document.getElementById('btnSubmitOrder').addEventListener('click', submitOrder);
+
+      // 折疊箭頭轉動效果
+      const sideCollapseEl = document.getElementById('sideItemsCollapse');
+      const sideIcon = document.getElementById('sideCollapseIcon');
+      if (sideCollapseEl && sideIcon) {
+        sideCollapseEl.addEventListener('hide.bs.collapse', () => { sideIcon.innerText = '▲'; });
+        sideCollapseEl.addEventListener('show.bs.collapse', () => { sideIcon.innerText = '▼'; });
+      }
     });
 
     function toggleLoading(show, text = "處理中...") {
@@ -255,7 +216,9 @@
       document.querySelectorAll('.side-qty-input').forEach(input => input.value = 0);
       comboCounter = 0;
       isCurrentOrderClosed = false;
+      
       document.body.classList.remove('edit-mode');
+      
       addComboCard();
       calculateLiveTotal();
     }
@@ -263,9 +226,7 @@
     async function fetchSetupConfig() {
       toggleLoading(true, "系統資料載入中...");
       try {
-        if (!supabaseClient) {
-          throw new Error("Supabase 客戶端尚未初始化。");
-        }
+        if (!supabaseClient) throw new Error("Supabase 客戶端尚未初始化。");
         
         const { data, error } = await supabaseClient.from('menu_items').select('*');
         if (error) throw error;
@@ -300,7 +261,7 @@
         });
         
         if (!setupData.comboTypePrices || Object.keys(setupData.comboTypePrices).length === 0) {
-          setupData.comboTypePrices = { "單點": 0, "雙拼": 120, "三拼": 125, "四拼": 130 };
+          setupData.comboTypePrices = { "單點": 0, "雙拼": 120, "三拼": 125, "四拼_魚": 130, "四拼_蝦": 130 };
         }
         
         globalSetupData = setupData;
@@ -311,7 +272,7 @@
         toggleLoading(false);
       } catch (err) {
         console.error(err);
-        alert("無法取得設定。\n錯誤資訊: " + err.message);
+        alert("無法取得設定，請檢查網路連線或資料表。\n錯誤資訊: " + err.message);
         toggleLoading(false);
       }
     }
@@ -323,8 +284,8 @@
         const row = document.createElement('div');
         row.className = 'side-item-row';
         row.innerHTML = `
-          <span class="fw-medium text-secondary me-2">${item.name} <span class="text-muted">($${item.price})</span></span>
-          <div class="input-group flex-shrink-0" style="width: 158px;">
+          <span class="fw-medium text-secondary" style="font-size: 0.9rem;">${item.name} <span class="text-muted">($${item.price})</span></span>
+          <div class="input-group" style="width: 105px;">
             <button class="btn btn-outline-secondary btn-stepper-action btn-side-minus" type="button">-</button>
             <input type="text" class="form-control stepper-input side-qty-input" data-name="${item.name}" value="0" readonly>
             <button class="btn btn-outline-secondary btn-stepper-action btn-side-plus" type="button">+</button>
@@ -377,30 +338,27 @@
       card.className = 'card combo-card';
       card.id = id;
       
-      /* 【優化】移除「升級選項：」文字，將各區塊 mb-3 緊縮為 mb-2 */
       card.innerHTML = `
-        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-2">
-          <div class="flex-grow-1" style="min-width: 220px;">
-            <div class="btn-group w-100 combo-type-segmented" role="group">
-              <input type="radio" class="btn-check type-radio" name="type_${id}" id="type1_${id}" value="1" checked>
-              <label class="btn btn-outline-primary fw-bold" for="type1_${id}">單點</label>
-              <input type="radio" class="btn-check type-radio" name="type_${id}" id="type2_${id}" value="2">
-              <label class="btn btn-outline-primary fw-bold" for="type2_${id}">雙拼</label>
-              <input type="radio" class="btn-check type-radio" name="type_${id}" id="type3_${id}" value="3">
-              <label class="btn btn-outline-primary fw-bold" for="type3_${id}">三拼</label>
-              <input type="radio" class="btn-check type-radio" name="type_${id}" id="type4_${id}" value="4">
-              <label class="btn btn-outline-primary fw-bold" for="type4_${id}">四拼</label>
-            </div>
-          </div>
-          <div class="d-flex justify-content-end flex-grow-1 flex-sm-grow-0">
-            <div class="input-group" style="width: 158px;">
-              <button class="btn btn-outline-secondary btn-stepper-action btn-minus" type="button">-</button>
-              <input type="text" class="form-control stepper-input combo-qty-input" value="1" readonly>
-              <button class="btn btn-outline-secondary btn-stepper-action btn-plus" type="button">+</button>
-            </div>
+        <div class="mb-2">
+          <div class="btn-group w-100 combo-type-segmented" role="group">
+            <input type="radio" class="btn-check type-radio" name="type_${id}" id="type1_${id}" value="單點" checked>
+            <label class="btn btn-outline-primary fw-bold" for="type1_${id}">單點</label>
+            
+            <input type="radio" class="btn-check type-radio" name="type_${id}" id="type2_${id}" value="雙拼">
+            <label class="btn btn-outline-primary fw-bold" for="type2_${id}">雙拼</label>
+            
+            <input type="radio" class="btn-check type-radio" name="type_${id}" id="type3_${id}" value="三拼">
+            <label class="btn btn-outline-primary fw-bold" for="type3_${id}">三拼</label>
+            
+            <input type="radio" class="btn-check type-radio" name="type_${id}" id="type4f_${id}" value="四拼_魚">
+            <label class="btn btn-outline-primary fw-bold" for="type4f_${id}">四拼_魚</label>
+
+            <input type="radio" class="btn-check type-radio" name="type_${id}" id="type4s_${id}" value="四拼_蝦">
+            <label class="btn btn-outline-primary fw-bold" for="type4s_${id}">四拼_蝦</label>
           </div>
         </div>
-        <div class="dish-radio-group mb-2" id="${id}_dishes"></div>
+
+        <div class="dish-radio-group" id="${id}_dishes"></div>
         
         <div class="mb-2">
           <div class="custom-btn-flex-container" id="${id}_upgrades">
@@ -414,9 +372,17 @@
           </div>
         </div>
         
-        <div class="d-flex justify-content-between align-items-center mt-2">
-          <button type="button" class="btn btn-outline-danger fw-bold btn-delete-combo py-1 px-3 fs-5">刪除此組合</button>
-          <div class="text-danger fw-bold combo-subtotal">小計: $0</div>
+        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-danger btn-sm fw-bold btn-delete-combo py-1">刪除此組合</button>
+          
+          <div class="d-flex align-items-center gap-2">
+            <div class="input-group" style="width: 105px;">
+              <button class="btn btn-outline-secondary btn-stepper-action btn-minus" type="button">-</button>
+              <input type="text" class="form-control stepper-input combo-qty-input" value="1" readonly>
+              <button class="btn btn-outline-secondary btn-stepper-action btn-plus" type="button">+</button>
+            </div>
+            <div class="text-danger fw-bold combo-subtotal mb-0">小計: $0</div>
+          </div>
         </div>
       `;
       
@@ -446,27 +412,37 @@
       card.querySelector('.btn-delete-combo').addEventListener('click', () => { card.remove(); calculateLiveTotal(); });
 
       if (preFillData) {
-        const targetRadio = card.querySelector(`input[name="type_${id}"][value="${preFillData.type}"]`);
+        let targetType = preFillData.type;
+        if (targetType === "四拼") targetType = "四拼_魚";
+        const targetRadio = card.querySelector(`input[name="type_${id}"][value="${targetType}"]`);
         if (targetRadio) targetRadio.checked = true;
         qtyInput.value = preFillData.qty;
         
         const targetUpgrade = card.querySelector(`input[name="upgrade_${id}"][value="${preFillData.upgrade}"]`);
         if (targetUpgrade) targetUpgrade.checked = true;
         
-        renderDishRadios(preFillData.type, card.querySelector(`#${id}_dishes`), card, id, preFillData.items);
+        renderDishRadios(targetType, card.querySelector(`#${id}_dishes`), card, id, preFillData.items);
       } else { 
-        renderDishRadios("1", card.querySelector(`#${id}_dishes`), card, id); 
+        renderDishRadios("單點", card.querySelector(`#${id}_dishes`), card, id); 
       }
     }
 
     function renderDishRadios(typeValue, targetDiv, card, cardId, preSelectedItems = null) {
       targetDiv.innerHTML = '';
-      const rowCount = parseInt(typeValue) || 1;
+      
+      // 當選擇三拼、四拼_魚、四拼_蝦時，隱藏餐點選擇區塊
+      if (typeValue === "三拼" || typeValue === "四拼_魚" || typeValue === "四拼_蝦") {
+        targetDiv.style.display = 'none';
+        return;
+      } else {
+        targetDiv.style.display = 'block';
+      }
+
+      const rowCount = (typeValue === "單點") ? 1 : 2;
       
       for (let r = 0; r < rowCount; r++) {
         const rowWrapper = document.createElement('div');
-        /* 【優化】將多拼時的每排間距由 mb-2 縮窄為 mb-1，並且完全移除「選擇主餐項目：」標籤文字 */
-        rowWrapper.className = 'dish-row-items mb-1'; 
+        rowWrapper.className = 'dish-row-items mb-1';
 
         const optionsFlex = document.createElement('div');
         optionsFlex.className = 'custom-btn-flex-container';
@@ -483,7 +459,7 @@
           
           optionsFlex.innerHTML += `
             <input type="radio" class="btn-check dish-radio-item" name="dish_${cardId}_row${r}" id="${radioId}" value="${d.name}" ${isChecked ? 'checked' : ''}>
-            <label class="btn btn-flat-style btn-vertical-style fw-medium" for="${radioId}">${d.name}</label>
+            <label class="btn btn-flat-style fw-medium" for="${radioId}">${d.name}</label>
           `;
         });
 
@@ -507,19 +483,19 @@
 
       document.querySelectorAll('.combo-card').forEach(card => {
         const checkedTypeRadio = card.querySelector('.type-radio:checked');
-        const type = checkedTypeRadio ? checkedTypeRadio.value : "1";
+        const type = checkedTypeRadio ? checkedTypeRadio.value : "單點";
         const qty = parseInt(card.querySelector('.combo-qty-input').value) || 0;
         
         const checkedUpgrade = card.querySelector('.upgrade-radio-item:checked');
         const upgradeName = checkedUpgrade ? checkedUpgrade.value : "";
         
         let basePrice = 0;
-        if (type === "1") {
+        if (type === "單點") {
           const firstChecked = card.querySelector('.dish-row-items input[type="radio"]:checked');
           const firstValue = firstChecked ? firstChecked.value : "";
           basePrice = globalSetupData.singleComboPrices[firstValue] || 0;
         } else {
-          basePrice = globalSetupData.comboTypePrices[type === "2" ? "雙拼" : type === "3" ? "三拼" : "四拼"] || 120;
+          basePrice = globalSetupData.comboTypePrices[type] || 0;
         }
 
         const subtotal = (basePrice + (globalSetupData.upgradePrices[upgradeName] || 0)) * qty;
@@ -585,15 +561,16 @@
 
         if (itemsError) throw itemsError;
 
-        const typeMapReverse = { "單點": "1", "雙拼": "2", "三拼": "3", "四拼": "4" };
-
         const combos = combosData.map(c => {
           const comboDishes = itemsData
             .filter(item => item.combo_id === c.id)
             .map(item => item.menu_item);
 
+          let comboType = c.combo_type || "單點";
+          if (comboType === "四拼") comboType = "四拼_魚";
+
           return {
-            type: typeMapReverse[c.combo_type] || "1",
+            type: comboType,
             qty: c.qty,
             upgrade: c.upgrade_name || "無",
             items: comboDishes
@@ -621,6 +598,7 @@
         });
 
         calculateLiveTotal();
+        
         document.body.classList.add('edit-mode');
         
         if (isCurrentOrderClosed) {
@@ -643,12 +621,13 @@
       const combos = [];
       document.querySelectorAll('.combo-card').forEach(card => {
         const checkedTypeRadio = card.querySelector('.type-radio:checked');
-        const type = checkedTypeRadio ? checkedTypeRadio.value : "1";
+        const type = checkedTypeRadio ? checkedTypeRadio.value : "單點";
         const items = Array.from(card.querySelectorAll('.dish-radio-item:checked')).map(rad => rad.value);
         const checkedUpgrade = card.querySelector('.upgrade-radio-item:checked');
         const upgrade = checkedUpgrade ? checkedUpgrade.value : "";
 
-        if (items.length > 0) {
+        // 三拼或四拼時沒有主餐選擇 radio，items 允許為空陣列
+        if (type !== "單點" && type !== "雙拼" || items.length > 0) {
           combos.push({
             type: type, 
             qty: parseInt(card.querySelector('.combo-qty-input').value) || 0, 
@@ -692,17 +671,14 @@
 
         if (deleteCombosError) throw deleteCombosError;
 
-        const comboTypeMap = { "1": "單點", "2": "雙拼", "3": "三拼", "4": "四拼" };
         const itemsToInsert = [];
 
         for (const combo of combos) {
-          const comboTypeName = comboTypeMap[combo.type] || "單點";
-          
           const { data: insertedCombo, error: comboInsertError } = await supabaseClient
             .from('combos')
             .insert({
               order_id: orderId,
-              combo_type: comboTypeName,
+              combo_type: combo.type,
               qty: combo.qty,
               upgrade_name: combo.upgrade
             })
@@ -741,7 +717,9 @@
 
         alert("送出成功！編號：" + orderId);
         document.getElementById('queryOrderId').value = orderId;
+        
         document.body.classList.remove('edit-mode');
+        
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
       } catch (err) {
