@@ -138,7 +138,13 @@
       margin: 0 auto;
     }
 
-    /* 提示訊息文字 */
+    /* 置於金額與按鈕中間的訊息區塊 */
+    .submit-msg-container {
+      flex: 1;
+      text-align: center;
+      padding: 0 6px;
+    }
+
     .submit-msg {
       font-size: 0.85rem;
       font-weight: bold;
@@ -193,18 +199,22 @@
     </div>
   </div>
 
-  <!-- 固定底部區塊：總計金額 + 訊息提示 + 送出訂單按鈕 -->
+  <!-- 固定底部區塊：總計金額 + 中間訊息區塊 + 送出訂單按鈕 -->
   <div class="fixed-bottom-bar">
-    <div class="bar-container d-flex justify-content-between align-items-center gap-2">
-      <div class="d-flex flex-column justify-content-center">
-        <div class="d-flex align-items-baseline gap-2">
-          <span class="fw-bold text-secondary fs-6 mb-0">總計</span>
-          <span class="fw-bold text-danger fs-3 mb-0">$<span id="grandTotalDisplay">0</span></span>
-        </div>
-        <!-- 原地停留5秒的提示訊息 -->
-        <div id="statusMessage" class="submit-msg mt-1"></div>
+    <div class="bar-container d-flex justify-content-between align-items-center">
+      <!-- 左側：金額 -->
+      <div class="d-flex align-items-baseline gap-1" style="min-width: 90px;">
+        <span class="fw-bold text-secondary fs-6 mb-0">總計</span>
+        <span class="fw-bold text-danger fs-3 mb-0">$<span id="grandTotalDisplay">0</span></span>
       </div>
-      <button type="button" class="btn btn-primary py-2 px-4 fs-5 fw-bold flex-grow-1" id="btnSubmitOrder" style="max-width: 240px;">送出訂單</button>
+
+      <!-- 中間：提示訊息 (金額與按鈕中間) -->
+      <div class="submit-msg-container">
+        <div id="statusMessage" class="submit-msg"></div>
+      </div>
+
+      <!-- 右側：送出按鈕 -->
+      <button type="button" class="btn btn-primary py-2 px-3 fs-5 fw-bold" id="btnSubmitOrder" style="width: 180px;">送出訂單</button>
     </div>
   </div>
 
@@ -255,7 +265,7 @@
       overlay.style.display = show ? 'flex' : 'none';
     }
 
-    // 顯示底部訊息 (停留5秒)
+    // 顯示金額與按鈕中間的訊息 (停留 5 秒)
     function showInlineMessage(text, isError = false) {
       const msgEl = document.getElementById('statusMessage');
       msgEl.innerText = text;
@@ -712,7 +722,7 @@
       });
 
       if (combosPayload.length === 0 && sidesPayload.length === 0) {
-        showInlineMessage("請至少選擇一項餐點！", true);
+        showInlineMessage("請至少選擇餐點！", true);
         return;
       }
   
@@ -737,8 +747,8 @@
         resetOrderContent();
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        // 原地顯示成功訊息 5 秒
-        showInlineMessage(`✓ 送出成功！\n編號：${orderId}`);
+        // 在金額與按鈕中間區塊顯示成功訊息 5 秒
+        showInlineMessage(`✓ 送出成功！\n${orderId}`);
 
       } catch (err) {
         console.error(err);
