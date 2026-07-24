@@ -6,8 +6,8 @@
   <title>點餐系統</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* 預設網頁背景色 - 採用溫潤灰泥色 */
-    body { background-color: #DBD5BE; padding-bottom: 30px; transition: background-color 0.3s ease; }
+    /* 預設網頁背景色 - 採用溫潤灰泥色 (留出底部固定列的高度空間，避免內容遮擋) */
+    body { background-color: #DBD5BE; padding-bottom: 100px; transition: background-color 0.3s ease; }
     
     /* 修改模式下的網頁背景色 */
     body.edit-mode { background-color: #fff3cd; } 
@@ -40,18 +40,24 @@
     /* 加減按鈕（- / +）底色 */
     .btn-outline-secondary { background-color: #E9ECEF; color: #6c757d; }
 
-    /* 清空內容按鈕底色 */
-    .btn-outline-danger { background-color: #EA6666; color: #F0F0F0; }
+    /* 清空內容按鈕底色 - 高度+25%, 字體+35% */
+    .btn-outline-danger { 
+      background-color: #EA6666; 
+      color: #F0F0F0; 
+      padding-top: 6px !important; 
+      padding-bottom: 6px !important; 
+      font-size: 1.15rem !important; 
+    }
     
-    /* 扁平化按鈕樣式 */
+    /* 扁平化按鈕樣式（餐點、升級選項）- 高度+25%, 字體+35% */
     .btn-flat-style {
       flex: 1 1 0%;
       min-width: 55px;
       background-color: #E9ECEF !important;
       color: #495057 !important;
       transition: all 0.2s ease;
-      font-size: 0.8rem;
-      padding: 5px 2px;
+      font-size: 1.08rem !important;
+      padding: 7px 2px !important;
       text-align: center;
       white-space: nowrap;
     }
@@ -88,24 +94,58 @@
 
     .combo-subtotal { font-size: 1.05rem; }
 
-    /* 金額總計卡片底色 */
-    .total-card { border: 2px dashed #507D4D; background-color: #FFFFFF; }
     .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; font-size: 1.2rem; font-weight: bold; }
     
-    /* 計數器按鈕與輸入框 */
-    .stepper-input { width: 40px; text-align: center; border-left: 0; border-right: 0; border-radius: 0; background-color: #fff !important; padding: 4px 0; font-size: 0.9rem; }
-    .btn-stepper-action { width: 32px; padding: 4px 0; text-align: center; font-weight: bold; display: inline-block; font-size: 0.9rem; }
+    /* 計數器按鈕與輸入框 - 高度+25%, 字體+35% */
+    .stepper-input { width: 40px; text-align: center; border-left: 0; border-right: 0; border-radius: 0; background-color: #fff !important; padding: 5px 0; font-size: 1.2rem; }
+    .btn-stepper-action { width: 32px; padding: 5px 0; text-align: center; font-weight: bold; display: inline-block; font-size: 1.2rem; }
     
     /* 自訂按鈕色彩 */
-    #btnAddCombo { background-color: #7A9A78; border-color: #7A9A78; color: #FFFFFF; }
+    #btnAddCombo { 
+      background-color: #7A9A78; 
+      border-color: #7A9A78; 
+      color: #FFFFFF; 
+      padding-top: 10px !important; 
+      padding-bottom: 10px !important; 
+      font-size: 1.15rem !important; 
+    }
     #btnAddCombo:hover { background-color: #507D4D; }
     #btnSubmitOrder.btn-primary { background-color: #507D4D !important; color: #FFFFFF; }
     #btnSubmitOrder.btn-primary:hover { background-color: #3E633C !important; }
     .text-primary { color: #507D4D !important; }
     .text-danger { color: #507D4D !important; }
 
-    /* 組合類型 5 個按鈕微調，確保行動裝置緊湊排列 */
-    .combo-type-segmented .btn { font-size: 0.8rem; padding: 6px 2px; }
+    /* 組合類型按鈕微調 */
+    .combo-type-segmented .btn { 
+      font-size: 1.08rem !important;
+      padding: 8px 2px !important;
+    }
+
+    /* 固定底部點餐與結帳列樣式 */
+    .fixed-bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: #FFFFFF;
+      box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.12);
+      padding: 10px 16px;
+      z-index: 1030;
+      border-top: 1px solid #E9ECEF;
+    }
+    .fixed-bottom-bar .bar-container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    /* 提示訊息文字 */
+    .submit-msg {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #28a745;
+      line-height: 1.2;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -128,14 +168,14 @@
     </div>
 
     <div class="mb-2">
-      <button type="button" class="btn btn-outline-danger btn-sm fw-bold w-100 py-1" id="btnResetOrder">清空內容</button>
+      <button type="button" class="btn btn-outline-danger btn-sm fw-bold w-100" id="btnResetOrder">清空內容</button>
     </div>
 
     <!-- 組合餐放置容器 -->
     <div id="comboContainer"></div>
 
     <div class="mb-3">
-      <button type="button" class="btn btn-secondary btn-sm w-100 fw-bold py-2" id="btnAddCombo">+ 新增組合</button>
+      <button type="button" class="btn btn-secondary btn-sm w-100 fw-bold" id="btnAddCombo">+ 新增組合</button>
     </div>
 
     <hr class="my-2">
@@ -151,16 +191,21 @@
         <div class="card-body py-1 px-3" id="sideItemsContainer"></div>
       </div>
     </div>
+  </div>
 
-    <!-- 總計卡片 -->
-    <div class="card total-card mb-3">
-      <div class="card-body d-flex justify-content-between align-items-center py-2 px-3">
-        <h5 class="m-0 fw-bold text-primary">金額總計</h5>
-        <h4 class="m-0 fw-bold text-danger">$ <span id="grandTotalDisplay">0</span></h4>
+  <!-- 固定底部區塊：總計金額 + 訊息提示 + 送出訂單按鈕 -->
+  <div class="fixed-bottom-bar">
+    <div class="bar-container d-flex justify-content-between align-items-center gap-2">
+      <div class="d-flex flex-column justify-content-center">
+        <div class="d-flex align-items-baseline gap-2">
+          <span class="fw-bold text-secondary fs-6 mb-0">總計</span>
+          <span class="fw-bold text-danger fs-3 mb-0">$<span id="grandTotalDisplay">0</span></span>
+        </div>
+        <!-- 原地停留5秒的提示訊息 -->
+        <div id="statusMessage" class="submit-msg mt-1"></div>
       </div>
+      <button type="button" class="btn btn-primary py-2 px-4 fs-5 fw-bold flex-grow-1" id="btnSubmitOrder" style="max-width: 240px;">送出訂單</button>
     </div>
-
-    <button type="button" class="btn btn-primary w-100 py-2.5 fs-5 fw-bold mb-3" id="btnSubmitOrder">送出訂單</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -174,6 +219,7 @@
     let globalSetupData = null;
     let comboCounter = 0;
     let isCurrentOrderClosed = false;
+    let msgTimer = null;
 
     function getFormattedTimestamp() {
       const n = new Date();
@@ -190,7 +236,7 @@
         }
       });
       document.getElementById('btnAddCombo').addEventListener('click', () => { addComboCard(); calculateLiveTotal(); });
-      document.getElementById('btnResetOrder').addEventListener('click', resetOrder);
+      document.getElementById('btnResetOrder').addEventListener('click', () => { if(confirm("確定要清空所有內容？")) resetOrderContent(); });
       document.getElementById('btnLoadOrder').addEventListener('click', loadOldOrder);
       document.getElementById('btnSubmitOrder').addEventListener('click', submitOrder);
 
@@ -209,8 +255,21 @@
       overlay.style.display = show ? 'flex' : 'none';
     }
 
-    function resetOrder() {
-      if(!confirm("確定要清空所有內容？")) return;
+    // 顯示底部訊息 (停留5秒)
+    function showInlineMessage(text, isError = false) {
+      const msgEl = document.getElementById('statusMessage');
+      msgEl.innerText = text;
+      msgEl.style.color = isError ? '#d9534f' : '#28a745';
+      msgEl.style.display = 'block';
+
+      if (msgTimer) clearTimeout(msgTimer);
+      msgTimer = setTimeout(() => {
+        msgEl.style.display = 'none';
+      }, 5000);
+    }
+
+    // 共用的清空邏輯 (含自動折疊單點列表)
+    function resetOrderContent() {
       document.getElementById('comboContainer').innerHTML = '';
       document.getElementById('queryOrderId').value = '';
       document.querySelectorAll('.side-qty-input').forEach(input => input.value = 0);
@@ -219,6 +278,13 @@
       
       document.body.classList.remove('edit-mode');
       
+      // 折疊單點列表
+      const sideCollapseEl = document.getElementById('sideItemsCollapse');
+      if (sideCollapseEl && sideCollapseEl.classList.contains('show')) {
+        const bsCollapse = bootstrap.Collapse.getInstance(sideCollapseEl) || new bootstrap.Collapse(sideCollapseEl, { toggle: false });
+        bsCollapse.hide();
+      }
+
       addComboCard();
       calculateLiveTotal();
     }
@@ -272,7 +338,7 @@
         toggleLoading(false);
       } catch (err) {
         console.error(err);
-        alert("無法取得設定，請檢查網路連線或資料表。\n錯誤資訊: " + err.message);
+        showInlineMessage("無法取得設定", true);
         toggleLoading(false);
       }
     }
@@ -284,8 +350,8 @@
         const row = document.createElement('div');
         row.className = 'side-item-row';
         row.innerHTML = `
-          <span class="fw-medium text-secondary" style="font-size: 0.9rem;">${item.name} <span class="text-muted">($${item.price})</span></span>
-          <div class="input-group" style="width: 105px;">
+          <span class="fw-medium text-secondary" style="font-size: 1.05rem;">${item.name} <span class="text-muted">($${item.price})</span></span>
+          <div class="input-group" style="width: 115px;">
             <button class="btn btn-outline-secondary btn-stepper-action btn-side-minus" type="button">-</button>
             <input type="text" class="form-control stepper-input side-qty-input" data-name="${item.name}" value="0" readonly>
             <button class="btn btn-outline-secondary btn-stepper-action btn-side-plus" type="button">+</button>
@@ -373,10 +439,10 @@
         </div>
         
         <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
-          <button type="button" class="btn btn-outline-danger btn-sm fw-bold btn-delete-combo py-1">刪除此組合</button>
+          <button type="button" class="btn btn-outline-danger btn-sm fw-bold btn-delete-combo py-1" style="font-size: 0.9rem !important;">刪除此組合</button>
           
           <div class="d-flex align-items-center gap-2">
-            <div class="input-group" style="width: 105px;">
+            <div class="input-group" style="width: 115px;">
               <button class="btn btn-outline-secondary btn-stepper-action btn-minus" type="button">-</button>
               <input type="text" class="form-control stepper-input combo-qty-input" value="1" readonly>
               <button class="btn btn-outline-secondary btn-stepper-action btn-plus" type="button">+</button>
@@ -430,7 +496,6 @@
     function renderDishRadios(typeValue, targetDiv, card, cardId, preSelectedItems = null) {
       targetDiv.innerHTML = '';
       
-      // 當選擇三拼、四拼_魚、四拼_蝦時，隱藏餐點選擇區塊
       if (typeValue === "三拼" || typeValue === "四拼_魚" || typeValue === "四拼_蝦") {
         targetDiv.style.display = 'none';
         return;
@@ -533,7 +598,7 @@
 
     async function loadOldOrder() {
       const orderId = document.getElementById('queryOrderId').value.trim();
-      if (!orderId) { alert("請輸入訂單編號！"); return; }
+      if (!orderId) { showInlineMessage("請輸入訂單編號", true); return; }
       toggleLoading(true, "讀取中...");
       
       try {
@@ -544,7 +609,7 @@
 
         if (orderError) throw orderError;
         if (!orderData) {
-          alert("找不到該訂單：" + orderId);
+          showInlineMessage("找不到訂單：" + orderId, true);
           toggleLoading(false);
           return;
         }
@@ -602,23 +667,21 @@
         document.body.classList.add('edit-mode');
         
         if (isCurrentOrderClosed) {
-          alert("【提示】此訂單已結單，鎖定修改功能！");
+          showInlineMessage("此訂單已結單，無法修改", true);
         } else {
-          const urlParams = new URLSearchParams(window.location.search);
-          if (urlParams.get('orderId') !== orderId) {
-            alert("訂單載入成功！已進入修改模式。");
-          }
+          showInlineMessage("訂單載入成功！已進入修改模式");
         }
       } catch (err) {
         console.error(err);
-        alert("讀取失敗。\n錯誤資訊: " + err.message);
+        showInlineMessage("讀取失敗：" + err.message, true);
       } finally {
         toggleLoading(false);
       }
     }
     
     async function submitOrder() {
-      const combos = [];
+      // 1. 收集組合資料
+      const combosPayload = [];
       document.querySelectorAll('.combo-card').forEach(card => {
         const checkedTypeRadio = card.querySelector('.type-radio:checked');
         const type = checkedTypeRadio ? checkedTypeRadio.value : "單點";
@@ -626,105 +689,60 @@
         const checkedUpgrade = card.querySelector('.upgrade-radio-item:checked');
         const upgrade = checkedUpgrade ? checkedUpgrade.value : "";
 
-        // 三拼或四拼時沒有主餐選擇 radio，items 允許為空陣列
         if (type !== "單點" && type !== "雙拼" || items.length > 0) {
-          combos.push({
+          combosPayload.push({
             type: type, 
             qty: parseInt(card.querySelector('.combo-qty-input').value) || 0, 
-            items, 
+            items: items, 
             upgrade: upgrade
           });
         }
       });
 
-      const sidesData = {}; 
+      // 2. 收集單點資料
+      const sidesPayload = [];
       document.querySelectorAll('.side-qty-input').forEach(i => {
-        sidesData[i.getAttribute('data-name')] = parseInt(i.value) || 0;
+        const qty = parseInt(i.value) || 0;
+        if (qty > 0) {
+          sidesPayload.push({
+            name: i.getAttribute('data-name'),
+            qty: qty
+          });
+        }
       });
 
-      if (combos.length === 0 && Object.values(sidesData).every(v => v === 0)) {
-        alert("請至少選擇一項餐點！");
+      if (combosPayload.length === 0 && sidesPayload.length === 0) {
+        showInlineMessage("請至少選擇一項餐點！", true);
         return;
       }
-      
+  
       const orderId = document.getElementById('queryOrderId').value.trim() || getFormattedTimestamp();
       const grandTotal = parseInt(document.getElementById('grandTotalDisplay').innerText) || 0;
-      
+  
       toggleLoading(true, "訂單送出中...");
-      
+  
       try {
         if (!supabaseClient) throw new Error("Supabase 客戶端尚未初始化。");
 
-        const { error: orderError } = await supabaseClient
-          .from('orders')
-          .upsert({ id: orderId, total_price: grandTotal }, { onConflict: 'id' });
+        const { data, error } = await supabaseClient.rpc('create_or_update_order', {
+          p_order_id: orderId,
+          p_total_price: grandTotal,
+          p_combos: combosPayload,
+          p_sides: sidesPayload
+        });
 
-        if (orderError) throw orderError;
+        if (error) throw error;
 
-        const { error: deleteItemsError } = await supabaseClient
-          .from('order_items').delete().eq('order_id', orderId);
-
-        if (deleteItemsError) throw deleteItemsError;
-
-        const { error: deleteCombosError } = await supabaseClient
-          .from('combos').delete().eq('order_id', orderId);
-
-        if (deleteCombosError) throw deleteCombosError;
-
-        const itemsToInsert = [];
-
-        for (const combo of combos) {
-          const { data: insertedCombo, error: comboInsertError } = await supabaseClient
-            .from('combos')
-            .insert({
-              order_id: orderId,
-              combo_type: combo.type,
-              qty: combo.qty,
-              upgrade_name: combo.upgrade
-            })
-            .select('id').single();
-
-          if (comboInsertError) throw comboInsertError;
-          const comboId = insertedCombo.id;
-
-          combo.items.forEach(dishName => {
-            itemsToInsert.push({
-              order_id: orderId,
-              combo_id: comboId,
-              menu_item: dishName,
-              qty: 1
-            });
-          });
-        }
-
-        for (const [sideName, sideQty] of Object.entries(sidesData)) {
-          if (sideQty > 0) {
-            itemsToInsert.push({
-              order_id: orderId,
-              combo_id: null,
-              menu_item: sideName,
-              qty: sideQty
-            });
-          }
-        }
-
-        if (itemsToInsert.length > 0) {
-          const { error: itemsInsertError } = await supabaseClient
-            .from('order_items').insert(itemsToInsert);
-
-          if (itemsInsertError) throw itemsInsertError;
-        }
-
-        alert("送出成功！編號：" + orderId);
-        document.getElementById('queryOrderId').value = orderId;
-        
-        document.body.classList.remove('edit-mode');
-        
+        // 送出成功後自動清空內容並復原畫面
+        resetOrderContent();
         window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // 原地顯示成功訊息 5 秒
+        showInlineMessage(`✓ 送出成功！\n編號：${orderId}`);
 
       } catch (err) {
         console.error(err);
-        alert("寫入錯誤。\n錯誤資訊: " + err.message);
+        showInlineMessage("寫入錯誤：" + err.message, true);
       } finally {
         toggleLoading(false);
       }
