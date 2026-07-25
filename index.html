@@ -9,8 +9,8 @@
     /* 預設網頁背景色 - 採用溫潤灰泥色 (留出底部固定列的高度空間，避免內容遮擋) */
     body { background-color: #DBD5BE; padding-bottom: 100px; transition: background-color 0.3s ease; }
     
-    /* 修改模式下的網頁背景色 */
-    body.edit-mode { background-color: #fff3cd; } 
+    /* 修改模式下的網頁背景色 (使用顯眼且溫暖的橘黃色做識別) */
+    body.edit-mode { background-color: #FFB74D !important; } 
     
     /* 緊湊型容器，縮減上下外邊距 */
     .main-container { max-width: 700px; margin: 15px auto; }
@@ -887,9 +887,12 @@
       });
     }
 
-    async function loadOldOrder() {
-      const orderId = document.getElementById('queryOrderId').value.trim();
+    async function loadOldOrder(targetOrderId = null) {
+      const orderId = targetOrderId || document.getElementById('queryOrderId').value.trim();
       if (!orderId) { showInlineMessage("請輸入訂單編號", true); return; }
+      
+      document.getElementById('queryOrderId').value = orderId;
+      currentEditingOrderId = orderId;
       toggleLoading(true, "讀取中...");
       
       try {
