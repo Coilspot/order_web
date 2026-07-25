@@ -36,9 +36,13 @@
     /* 強制取消所有按鈕邊框 */
     .btn { border: none !important; }
     .btn-outline-primary { background-color: #E9ECEF; color: #507D4D; }
+    .btn-outline-primary:hover { background-color: #507D4D !important; color: #ffffff !important; }
 
     /* 加減按鈕（- / +）底色 */
     .btn-outline-secondary { background-color: #E9ECEF; color: #6c757d; }
+
+    /* 逾時結單鎖定標籤樣式 */
+    .badge-timeout { background-color: #78909C !important; color: #ffffff !important; }
 
     /* 清空內容按鈕底色 - 高度+25%, 字體+35% */
     .btn-outline-danger { 
@@ -860,7 +864,7 @@
         } else if (order.is_closed) {
           statusBadge = '<span class="badge bg-secondary">結單</span>';
         } else if (isAutoClosed) {
-          statusBadge = '<span class="badge bg-dark" title="超過20分鐘自動結單">逾時鎖定</span>';
+          statusBadge = '<span class="badge badge-timeout" title="超過20分鐘自動結單">逾時鎖定</span>';
         } else {
           statusBadge = '<span class="badge bg-success">編輯</span>';
         }
