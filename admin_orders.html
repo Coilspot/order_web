@@ -24,6 +24,8 @@
       padding-bottom: 50px;
     }
 
+    .badge-timeout { background-color: #78909C !important; color: #ffffff !important; }
+
     /* 登入畫面 */
     .login-container { max-width: 400px; margin-top: 15vh; }
     .login-card {
@@ -570,25 +572,30 @@
           itemsHtml += `</div>`;
         }
 
+        const elapsedMins = (Date.now() - new Date(order.created_at).getTime()) / (1000 * 60);
+        const isAutoClosed = elapsedMins >= 20;
+
         let statusBadge = '';
         if (order.is_closed) {
           statusBadge = '<span class="badge bg-secondary ms-2">已結單</span>';
         } else if (order.is_voided) {
           statusBadge = '<span class="badge bg-danger ms-2">已作廢</span>';
+        } else if (isAutoClosed) {
+          statusBadge = '<span class="badge badge-timeout ms-2" title="超過20分鐘自動結單">逾時結單</span>';
         }
 
-        // 調整 1 & 2：當「已結單」或「已作廢」時，不生成任何操作按鈕（即不可再還原）
+        // 當「已結單」、「已作廢」或「超過20分鐘自動結單」時，不生成編輯或作廢按鈕
         let actionButtons = '';
-        if (!order.is_closed && !order.is_voided) {
+        if (!order.is_closed && !order.is_voided && !isAutoClosed) {
           actionButtons = `
             <button class="btn btn-sm btn-primary fw-bold" onclick="closeOrder('${order.id}')">結單</button>
             <button class="btn btn-sm btn-outline-danger fw-bold" onclick="toggleVoidStatus('${order.id}', true)">作廢此單</button>
           `;
         }
 
-        // 調整 2：結單與作廢後，訂單號連結無效（切換為純文字）
+        // 結單、作廢與逾時鎖定後，訂單號連結無效（切換為純文字）
         let orderLinkHtml = '';
-        if (order.is_closed || order.is_voided) {
+        if (order.is_closed || order.is_voided || isAutoClosed) {
           orderLinkHtml = `<span class="text-secondary fw-bold fs-6">單號: ${order.id}</span>`;
         } else {
           orderLinkHtml = `<a href="index.html?orderId=${order.id}" target="_blank" class="text-primary text-decoration-none fw-bold fs-6">單號: ${order.id} 🔗</a>`;
