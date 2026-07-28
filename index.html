@@ -190,7 +190,7 @@
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
-      background-color: #E9ECEF !important; /* 加上淺灰底色 */
+      background-color: #E9ECEF !important;
     }
     
     /* 結單按鈕可點選時的文字顏色 */
@@ -210,7 +210,7 @@
 
   <div class="container-fluid px-3 my-3">
     <div class="row g-3">
-      <!-- 左側最近20筆訂單側邊欄 (col-md-4 col-lg-3) -->
+      <!-- 左側最近20筆訂單側邊欄 -->
       <div class="col-md-4 col-lg-3">
         <div class="card shadow-sm h-100" style="background-color: #F8F8F8; border-color: #D8EFDC;">
           <div class="card-header text-white fw-bold py-2 d-flex justify-content-between align-items-center" style="background-color: #507D4D;">
@@ -223,11 +223,11 @@
         </div>
       </div>
 
-      <!-- 右側主點餐區塊 (col-md-8 col-lg-9) -->
+      <!-- 右側主點餐區塊 -->
       <div class="col-md-8 col-lg-9">
         <div class="main-container m-0" style="max-width: 100%;">
           
-          <!-- 🔥 熱銷組合區塊 -->
+          <!-- 熱銷組合區塊 -->
           <div class="card mb-3 border-0 shadow-sm" style="background-color: #F8F8F8;">
             <div class="card-body p-2">
               <div class="d-flex justify-content-between align-items-center mb-2">
@@ -237,35 +237,30 @@
               <div class="d-flex gap-2 align-items-stretch">
                 <!-- 左側 5 組熱銷組合按鈕 -->
                 <div class="flex-grow-1 d-flex flex-column gap-1">
-                  <!-- Row 1 -->
                   <div class="input-group input-group-sm">
                     <button class="btn fw-bold px-2 py-1 fs-7" type="button" onclick="savePreset(1)" style="background-color: #7A9A78; color: #FFF;">更新</button>
                     <button class="btn btn-outline-primary text-start flex-grow-1 text-truncate py-1 px-2 fw-medium fs-7" type="button" id="presetBtn1" onclick="loadPreset(1)">
                       1. (空) 點擊 [更新] 儲存當前點餐
                     </button>
                   </div>
-                  <!-- Row 2 -->
                   <div class="input-group input-group-sm">
                     <button class="btn fw-bold px-2 py-1 fs-7" type="button" onclick="savePreset(2)" style="background-color: #7A9A78; color: #FFF;">更新</button>
                     <button class="btn btn-outline-primary text-start flex-grow-1 text-truncate py-1 px-2 fw-medium fs-7" type="button" id="presetBtn2" onclick="loadPreset(2)">
                       2. (空) 點擊 [更新] 儲存當前點餐
                     </button>
                   </div>
-                  <!-- Row 3 -->
                   <div class="input-group input-group-sm">
                     <button class="btn fw-bold px-2 py-1 fs-7" type="button" onclick="savePreset(3)" style="background-color: #7A9A78; color: #FFF;">更新</button>
                     <button class="btn btn-outline-primary text-start flex-grow-1 text-truncate py-1 px-2 fw-medium fs-7" type="button" id="presetBtn3" onclick="loadPreset(3)">
                       3. (空) 點擊 [更新] 儲存當前點餐
                     </button>
                   </div>
-                  <!-- Row 4 -->
                   <div class="input-group input-group-sm">
                     <button class="btn fw-bold px-2 py-1 fs-7" type="button" onclick="savePreset(4)" style="background-color: #7A9A78; color: #FFF;">更新</button>
                     <button class="btn btn-outline-primary text-start flex-grow-1 text-truncate py-1 px-2 fw-medium fs-7" type="button" id="presetBtn4" onclick="loadPreset(4)">
                       4. (空) 點擊 [更新] 儲存當前點餐
                     </button>
                   </div>
-                  <!-- Row 5 -->
                   <div class="input-group input-group-sm">
                     <button class="btn fw-bold px-2 py-1 fs-7" type="button" onclick="savePreset(5)" style="background-color: #7A9A78; color: #FFF;">更新</button>
                     <button class="btn btn-outline-primary text-start flex-grow-1 text-truncate py-1 px-2 fw-medium fs-7" type="button" id="presetBtn5" onclick="loadPreset(5)">
@@ -288,7 +283,6 @@
       <button type="button" class="btn btn-outline-danger btn-sm fw-bold w-100" id="btnResetOrder">清空內容</button>
     </div>
 
-    <!-- 隱藏但保留 queryOrderId -->
     <input type="hidden" id="queryOrderId" value="">
 
     <!-- 組合餐放置容器 -->
@@ -510,7 +504,6 @@
       });
     }
 
-    // 取消互斥限制：確保所有主餐按鈕均維持可選取的啟用狀態
     function syncRowExclusion(card) {
       const allRadios = card.querySelectorAll('.dish-radio-item');
       allRadios.forEach(radio => {
@@ -785,6 +778,7 @@
       showInlineMessage(`已儲存至熱銷組合 ${slot}！`);
     }
 
+    // 調整：允許在編輯模式下將熱銷組合套入當前舊訂單中
     function loadPreset(slot) {
       const presets = getPresetsFromStorage();
       const preset = presets[slot];
@@ -792,14 +786,6 @@
         showInlineMessage(`熱銷組合 ${slot} 尚未設定，請按 [更新] 儲存當前點餐內容。`, true);
         return;
       }
-
-      currentEditingOrderId = null;
-      document.getElementById('queryOrderId').value = '';
-      document.body.classList.remove('edit-mode');
-      const cancelBtn = document.getElementById('btnCancelEdit');
-      if (cancelBtn) cancelBtn.classList.add('d-none');
-      
-      isCurrentOrderClosed = false;
 
       document.getElementById('comboContainer').innerHTML = '';
       if (preset.combos && preset.combos.length > 0) {
@@ -815,7 +801,12 @@
 
       calculateLiveTotal();
       fetchRecentOrders();
-      showInlineMessage(`已載入熱銷組合 ${slot}`);
+
+      if (currentEditingOrderId) {
+        showInlineMessage(`已將熱銷組合 ${slot} 套用到當前訂單 #${currentEditingOrderId.slice(-6)}！`);
+      } else {
+        showInlineMessage(`已載入熱銷組合 ${slot}`);
+      }
     }
 
     function renderPresetsUI() {
@@ -930,7 +921,6 @@
           statusBadge = '<span class="badge badge-timeout" title="超過20分鐘自動結單">逾時鎖定</span>';
         }
 
-        // 快捷按鈕：套用專屬顏色類別來區分文字色
         let actionBtns = '';
         if (!isLocked) {
           actionBtns = `
