@@ -510,28 +510,11 @@
       });
     }
 
+    // 取消互斥限制：確保所有主餐按鈕均維持可選取的啟用狀態
     function syncRowExclusion(card) {
-      const allRows = card.querySelectorAll('.dish-row-items');
-      const globalSelectedValues = [];
-      
-      allRows.forEach(row => {
-        const checked = row.querySelector('.dish-radio-item:checked');
-        if (checked) {
-          globalSelectedValues.push({ value: checked.value, originRow: row });
-        }
-      });
-
-      allRows.forEach(currentRow => {
-        const radiosInRow = currentRow.querySelectorAll('.dish-radio-item');
-        radiosInRow.forEach(radio => {
-          const isSelectedByOthers = globalSelectedValues.some(item => item.value === radio.value && item.originRow !== currentRow);
-          if (isSelectedByOthers) {
-            radio.disabled = true;
-            if (radio.checked) radio.checked = false;
-          } else {
-            radio.disabled = false;
-          }
-        });
+      const allRadios = card.querySelectorAll('.dish-radio-item');
+      allRadios.forEach(radio => {
+        radio.disabled = false;
       });
     }
 
