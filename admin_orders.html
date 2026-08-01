@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>點餐系統 - 每日訂單明細</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f3f4f6;
+      --card-bg: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --primary: #059669;
+      --primary-hover: #047857;
+      --border-color: #e5e7eb;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text-main);
+      padding-bottom: 50px;
+    }
+
+    .badge-timeout { background-color: #78909C !important; color: #ffffff !important; }
+
+    /* 登入畫面 */
+    .login-container { max-width: 400px; margin-top: 15vh; }
+    .login-card {
+      border: none; border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      background-color: var(--card-bg); padding: 30px;
+    }
+
+    /* 儀表板頁首 */
+    .dashboard-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 20px rgba(5, 150, 105, 0.15);
+    }
+
+    /* 月曆視圖 */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+    
+    /* RWD 手機版月曆調整 */
+    @media (max-width: 768px) {
+      .calendar-grid {
+        gap: 6px;
+      }
+      .calendar-cell {
+        min-height: 80px !important;
+        padding: 6px !important;
+      }
+      .cell-revenue {
+        font-size: 0.9rem !important;
+      }
+    }
+    
+    .calendar-header {
+      text-align: center;
+      font-weight: bold;
+      color: var(--text-muted);
+      padding: 10px 0;
+      background-color: #e2e8f0;
+      border-radius: 8px;
+    }
+    .calendar-cell {
+      background: var(--card-bg);
+      border-radius: 12px;
+      min-height: 100px;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .calendar-cell:hover:not(.empty-cell) {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.06);
+      border-color: var(--primary);
+    }
+    .calendar-cell.empty-cell {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      cursor: default;
+    }
+    .cell-date {
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: var(--text-main);
+      margin-bottom: 5px;
+    }
+    .cell-revenue {
+      margin-top: auto;
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.15rem;
+      text-align: right;
+    }
+    .cell-revenue.zero {
+      color: var(--text-muted);
+      font-weight: normal;
+      font-size: 0.9rem;
+    }
+
+    /* 訂單明細卡片 */
+    .order-card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+      margin-bottom: 20px;
+    }
+    .order-card-header {
+      background-color: #f8fafc;
+      border-bottom: 1px solid var(--border-color);
+      border-radius: 12px 12px 0 0;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .order-card-body { padding: 20px; }
+    .combo-section {
+      background-color: #f1f5f9;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .combo-title { font-weight: 600; color: #334155; margin-bottom: 6px; }
+    .combo-items { margin-left: 15px; color: #475569; font-size: 0.95rem; }
+    .side-section {
+      border-top: 1px dashed var(--border-color);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+    
+    /* 時段區塊標題樣式 */
+    .time-period-header {
+      background-color: #e2e8f0;
+      color: #334155;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-weight: bold;
+      margin-top: 25px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    /* Loading 遮罩 */
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(255, 255, 255, 0.85); display: flex;
+      flex-direction: column; justify-content: center; align-items: center;
+      z-index: 9999; font-size: 1.2rem; font-weight: 600;
+    }
+    .spinner-border { width: 3rem; height: 3rem; color: var(--primary); }
+  </style>
+</head>
+<body>
+
+  <!-- Loading 遮罩 -->
+  <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+    <div class="spinner-border mb-3" role="status"></div>
+    <div id="loadingText" class="text-success">處理中...</div>
+  </div>
+
+  <!-- 登入區塊 -->
+  <div id="authContainer" class="container login-container">
+    <div class="login-card text-center">
+      <h3 class="fw-bold text-success mb-3">明細查詢登入</h3>
+      <p class="text-muted mb-4">請輸入密碼以檢視每日訂單明細</p>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="mb-3">
+          <input type="password" id="adminPassword" class="form-control form-control-lg text-center" placeholder="請輸入密碼" required autofocus>
+          <div id="loginFeedback" class="invalid-feedback mt-2">密碼錯誤，請再試一次。</div>
+        </div>
+        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold py-2">登入</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 主畫面區塊 -->
+  <div id="dashboardContainer" class="container py-4" style="display: none;">
+    
+    <!-- 頂部頁首 -->
+    <div class="dashboard-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <h2 class="m-0 fw-bold">每日訂單明細查詢</h2>
+        <p class="m-0 opacity-75 mt-1">查閱特定月份的營業狀況與每日訂單明細</p>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <label for="monthPicker" class="fw-medium text-nowrap m-0 text-white">選擇月份：</label>
+        <input type="month" id="monthPicker" class="form-control" style="width: auto;">
+        <button class="btn btn-light fw-bold text-success px-3" onclick="window.location.href='admin.html'">返回數據報表</button>
+      </div>
+    </div>
+
+    <!-- 1. 月曆視圖 (Calendar View) -->
+    <div id="calendarView">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h4 class="fw-bold text-secondary m-0" id="calendarTitle">營業日曆</h4>
+        <h5 class="fw-bold text-secondary m-0">當月總營業額: <span id="monthlyTotalRevenue" class="text-success">$ 0</span></h5>
+      </div>
+      
+      <div class="calendar-grid mb-2">
+        <div class="calendar-header">日</div>
+        <div class="calendar-header">一</div>
+        <div class="calendar-header">二</div>
+        <div class="calendar-header">三</div>
+        <div class="calendar-header">四</div>
+        <div class="calendar-header">五</div>
+        <div class="calendar-header">六</div>
+      </div>
+      
+      <div class="calendar-grid" id="calendarBody">
+        <!-- JS 動態產生月曆格子 -->
+      </div>
+    </div>
+
+    <!-- 2. 單日明細視圖 (Daily Details View) -->
+    <div id="dailyView" style="display: none;">
+      <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
+        <div>
+          <h4 class="fw-bold text-secondary m-0" id="dailyViewTitle">2026-06-15 訂單明細</h4>
+        </div>
+        <button class="btn btn-outline-secondary fw-bold" onclick="showCalendarView()">← 返回月曆</button>
+      </div>
+
+      <!-- 切換按鈕與統計列 -->
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 bg-white p-3 rounded shadow-sm">
+        <div class="btn-group" role="group" aria-label="Time Filter Group">
+          <button type="button" class="btn btn-success fw-bold" id="btnFilterAll" onclick="switchFilter('all')">總計</button>
+          <button type="button" class="btn btn-outline-success fw-bold" id="btnFilterBefore3" onclick="switchFilter('before3')">上半天 (&lt; 15:00)</button>
+          <button type="button" class="btn btn-outline-success fw-bold" id="btnFilterAfter3" onclick="switchFilter('after3')">下半天 (&ge; 15:00)</button>
+        </div>
+        <div>
+          <h5 class="fw-bold text-secondary m-0">營業額: <span id="dailyTotalRevenue" class="text-success">$ 0</span> (共 <span id="dailyOrderCount">0</span> 筆)</h5>
+        </div>
+      </div>
+
+      <!-- 下午三點前區塊 -->
+      <div id="sectionBefore3">
+        <div class="time-period-header">
+          <span>🕒 下午 3 點前訂單</span>
+          <span id="before3Revenue">營業額: $0 (0筆)</span>
+        </div>
+        <div id="ordersBefore3Container">
+          <!-- 3點前訂單卡片 -->
+        </div>
+      </div>
+
+      <!-- 下午三點後區塊 -->
+      <div id="sectionAfter3">
+        <div class="time-period-header">
+          <span>🕒 下午 3 點後訂單</span>
+          <span id="after3Revenue">營業額: $0 (0筆)</span>
+        </div>
+        <div id="ordersAfter3Container">
+          <!-- 3點後訂單卡片 -->
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://kunjdfvluaoyfszocfzb.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_B_-aIszU8wV0RyFnXwid8g_BMc1OVv2';
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    let currentMonthData = {}; // 儲存 { "YYYY-MM-DD": revenue }
+    let currentDailyOrders = []; // 儲存目前載入的單日原始訂單資料
+    let currentFilterMode = 'all'; // 預設篩選模式: 'all', 'before3', 'after3'
+
+    // 儲存最新的菜單價格以便計算小計
+    let globalSetupData = {
+      singleComboPrices: {},
+      comboTypePrices: { "單點": 0, "雙拼": 120, "三拼": 125, "四拼": 130 },
+      upgradePrices: {},
+      sidePrices: {}
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (sessionStorage.getItem('admin_logged_in') === 'true') {
+        document.getElementById('authContainer').style.display = 'none';
+        document.getElementById('dashboardContainer').style.display = 'block';
+        initPage();
+      }
+    });
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const pwdInput = document.getElementById('adminPassword');
+      const feedback = document.getElementById('loginFeedback');
+      
+      if (pwdInput.value === 'admin123') {
+        sessionStorage.setItem('admin_logged_in', 'true');
+        document.getElementById('authContainer').style.display = 'none';
+        document.getElementById('dashboardContainer').style.display = 'block';
+        initPage();
+      } else {
+        pwdInput.classList.add('is-invalid');
+        feedback.style.display = 'block';
+        pwdInput.value = '';
+        pwdInput.focus();
+      }
+    }
+
+    document.getElementById('adminPassword').addEventListener('input', function() {
+      this.classList.remove('is-invalid');
+      document.getElementById('loginFeedback').style.display = 'none';
+    });
+
+    function toggleLoading(show, text = "處理中...") {
+      document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+      document.getElementById('loadingText').innerText = text;
+    }
+
+    // 取得最新菜單價格供小計計算
+    async function fetchMenuPrices() {
+      try {
+        if (!supabaseClient) return;
+        const { data, error } = await supabaseClient.from('menu_items').select('*');
+        if (error) throw error;
+        
+        data.forEach(item => {
+          const price = item.price || 0;
+          if (item.category === 'main') globalSetupData.singleComboPrices[item.name] = price;
+          else if (item.category === 'side') globalSetupData.sidePrices[item.name] = price;
+          else if (item.category === 'upgrade') globalSetupData.upgradePrices[item.name] = price;
+          else if (item.category === 'combo') globalSetupData.comboTypePrices[item.name] = price;
+        });
+      } catch (err) {
+        console.warn("取得菜單價格失敗", err);
+      }
+    }
+
+    // 初始化頁面
+    async function initPage() {
+      const today = new Date();
+      const curYear = today.getFullYear();
+      const curMonth = String(today.getMonth() + 1).padStart(2, '0');
+      
+      const monthPicker = document.getElementById('monthPicker');
+      monthPicker.value = `${curYear}-${curMonth}`;
+      
+      monthPicker.addEventListener('change', loadMonthData);
+      
+      await fetchMenuPrices();
+      loadMonthData(); // 預設載入本月
+    }
+
+    // 切換至月曆畫面
+    function showCalendarView() {
+      document.getElementById('calendarView').style.display = 'block';
+      document.getElementById('dailyView').style.display = 'none';
+    }
+
+    // 取得當地日期的字串格式 (YYYY-MM-DD)
+    function getLocalDateStr(dateObj) {
+      return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+    }
+
+    // 取得今天日期的字串格式
+    function getLocalTodayStr() {
+      return getLocalDateStr(new Date());
+    }
+
+    // 載入整個月份的營業資料，繪製月曆
+    async function loadMonthData() {
+      const selectedMonthStr = document.getElementById('monthPicker').value; // 格式: YYYY-MM
+      if (!selectedMonthStr) return;
+      
+      toggleLoading(true, "讀取月份資料中...");
+      showCalendarView();
+
+      try {
+        if (!supabaseClient) throw new Error("Supabase 客戶端尚未初始化");
+
+        const [year, month] = selectedMonthStr.split('-').map(Number);
+        
+        document.getElementById('calendarTitle').innerText = `${year}年 ${String(month).padStart(2, '0')}月 營業日曆`;
+
+        // 取得該月的第一秒 (當地時間)
+        const startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
+        // 取得下個月第一秒 (當地時間)
+        const endDate = new Date(year, month, 1, 0, 0, 0, 0);
+
+        // 僅撈取 created_at, total_price, is_voided 進行輕量化統計
+        const { data, error } = await supabaseClient
+          .from('orders')
+          .select('created_at, total_price, is_voided')
+          .gte('created_at', startDate.toISOString())
+          .lt('created_at', endDate.toISOString());
+
+        if (error) throw error;
+        
+        currentMonthData = {};
+        let monthTotal = 0;
+        
+        (data || []).forEach(order => {
+          if (order.is_voided) return; // 排除已作廢訂單
+
+          const orderDate = new Date(order.created_at);
+          const localDateStr = getLocalDateStr(orderDate);
+          
+          const price = order.total_price || 0;
+          monthTotal += price;
+          
+          if (!currentMonthData[localDateStr]) {
+            currentMonthData[localDateStr] = 0;
+          }
+          currentMonthData[localDateStr] += price;
+        });
+
+        document.getElementById('monthlyTotalRevenue').innerText = `$ ${monthTotal.toLocaleString()}`;
+        
+        renderCalendar(year, month);
+      } catch (err) {
+        console.error(err);
+        alert("讀取月份資料失敗！錯誤資訊: " + err.message);
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    // 渲染月曆網格
+    function renderCalendar(year, month) {
+      const body = document.getElementById('calendarBody');
+      body.innerHTML = '';
+      
+      const firstDay = new Date(year, month - 1, 1).getDay(); // 本月 1 號是星期幾 (0-6)
+      const daysInMonth = new Date(year, month, 0).getDate(); // 本月有幾天
+      
+      // 1. 填補月初的空白格子
+      for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-cell empty-cell';
+        body.appendChild(emptyCell);
+      }
+      
+      // 2. 產生每一天的格子
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const revenue = currentMonthData[dateStr] || 0;
+        
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell';
+        
+        const isToday = (dateStr === getLocalTodayStr());
+        if (isToday) {
+          cell.style.borderColor = '#059669';
+          cell.style.borderWidth = '2px';
+        }
+        
+        cell.innerHTML = `
+          <div class="cell-date">
+            ${d} 
+            ${isToday ? '<span class="badge bg-success ms-1" style="font-size:0.75rem;">今日</span>' : ''}
+          </div>
+          <div class="cell-revenue ${revenue === 0 ? 'zero' : ''}">
+            ${revenue > 0 ? '$ ' + revenue.toLocaleString() : '無營收'}
+          </div>
+        `;
+        
+        cell.addEventListener('click', () => {
+          loadDailyOrders(dateStr);
+        });
+        
+        body.appendChild(cell);
+      }
+      
+      // 3. 填補月底的空白格子
+      const lastDay = new Date(year, month - 1, daysInMonth).getDay();
+      for (let i = lastDay + 1; i <= 6; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-cell empty-cell';
+        body.appendChild(emptyCell);
+      }
+    }
+
+    // 載入特定日期的訂單明細
+    async function loadDailyOrders(dateStr) {
+      toggleLoading(true, "讀取單日明細中...");
+      
+      try {
+        document.getElementById('dailyViewTitle').innerText = `${dateStr} 訂單明細`;
+        document.getElementById('calendarView').style.display = 'none';
+        document.getElementById('dailyView').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        const [year, month, day] = dateStr.split('-').map(Number);
+        
+        const startDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+        const endDate = new Date(year, month - 1, day + 1, 0, 0, 0, 0);
+
+        const { data, error } = await supabaseClient
+          .from('orders')
+          .select(`
+            id,
+            total_price,
+            created_at,
+            is_voided,
+            is_closed,
+            is_delivery,
+            combos (*),
+            order_items (*)
+          `)
+          .gte('created_at', startDate.toISOString())
+          .lt('created_at', endDate.toISOString())
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        currentDailyOrders = data || [];
+        switchFilter('all'); // 預設顯示總計
+      } catch (err) {
+        console.error(err);
+        alert("讀取訂單資料失敗！錯誤資訊: " + err.message);
+        showCalendarView();
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    // 切換篩選模式 (all, before3, after3)
+    function switchFilter(mode) {
+      currentFilterMode = mode;
+      
+      // 更新按鈕樣式
+      const btnAll = document.getElementById('btnFilterAll');
+      const btnBefore3 = document.getElementById('btnFilterBefore3');
+      const btnAfter3 = document.getElementById('btnFilterAfter3');
+      
+      btnAll.className = mode === 'all' ? 'btn btn-success fw-bold' : 'btn btn-outline-success fw-bold';
+      btnBefore3.className = mode === 'before3' ? 'btn btn-success fw-bold' : 'btn btn-outline-success fw-bold';
+      btnAfter3.className = mode === 'after3' ? 'btn btn-success fw-bold' : 'btn btn-outline-success fw-bold';
+      
+      const secBefore3 = document.getElementById('sectionBefore3');
+      const secAfter3 = document.getElementById('sectionAfter3');
+      
+      if (mode === 'all') {
+        secBefore3.style.display = 'block';
+        secAfter3.style.display = 'block';
+      } else if (mode === 'before3') {
+        secBefore3.style.display = 'block';
+        secAfter3.style.display = 'none';
+      } else if (mode === 'after3') {
+        secBefore3.style.display = 'none';
+        secAfter3.style.display = 'block';
+      }
+      
+      renderOrders(currentDailyOrders);
+    }
+
+    // 渲染特定日期的所有訂單卡片
+    function renderOrders(orders) {
+      const containerBefore3 = document.getElementById('ordersBefore3Container');
+      const containerAfter3 = document.getElementById('ordersAfter3Container');
+      containerBefore3.innerHTML = '';
+      containerAfter3.innerHTML = '';
+      
+      let totalRevenue = 0;
+      let validOrderCount = 0;
+      
+      let before3Revenue = 0, before3Count = 0;
+      let after3Revenue = 0, after3Count = 0;
+      
+      if (!orders || orders.length === 0) {
+        containerBefore3.innerHTML = '<div class="text-center text-muted py-3">無下午3點前訂單</div>';
+        containerAfter3.innerHTML = '<div class="text-center text-muted py-3">無下午3點後訂單</div>';
+        document.getElementById('dailyTotalRevenue').innerText = '$ 0';
+        document.getElementById('dailyOrderCount').innerText = '0';
+        document.getElementById('before3Revenue').innerText = '營業額: $0 (0筆)';
+        document.getElementById('after3Revenue').innerText = '營業額: $0 (0筆)';
+        return;
+      }
+
+      orders.forEach(order => {
+        const dateObj = new Date(order.created_at);
+        const hour = dateObj.getHours();
+        const isAfter3 = hour >= 15;
+
+        if (!order.is_voided) {
+          totalRevenue += (order.total_price || 0);
+          validOrderCount++;
+
+          if (isAfter3) {
+            after3Revenue += (order.total_price || 0);
+            after3Count++;
+          } else {
+            before3Revenue += (order.total_price || 0);
+            before3Count++;
+          }
+        }
+        
+        const timeStr = `${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+
+        let itemsHtml = '';
+        
+        if (order.combos && order.combos.length > 0) {
+          order.combos.forEach(combo => {
+            const comboItems = (order.order_items || []).filter(item => item.combo_id === combo.id);
+            const dishesStr = comboItems.map(i => i.menu_item).join(', ');
+            
+            let basePrice = 0;
+            if (combo.combo_type === "單點") {
+              const firstDish = comboItems.length > 0 ? comboItems[0].menu_item : "";
+              basePrice = globalSetupData.singleComboPrices[firstDish] || 0;
+            } else {
+              basePrice = globalSetupData.comboTypePrices[combo.combo_type] || 0;
+            }
+            
+            const upgradePrice = globalSetupData.upgradePrices[combo.upgrade_name] || 0;
+            const subtotal = (basePrice + upgradePrice) * (combo.qty || 1);
+            
+            itemsHtml += `
+              <div class="combo-section">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="combo-title m-0">📦 ${combo.combo_type} x ${combo.qty} <span class="badge bg-secondary ms-2">升級: ${combo.upgrade_name || '無'}</span></div>
+                  <div class="fw-bold text-success">$${subtotal}</div>
+                </div>
+                <div class="combo-items">包含：${dishesStr || '無項目'}</div>
+              </div>
+            `;
+          });
+        }
+        
+        const sideItems = (order.order_items || []).filter(item => !item.combo_id);
+        if (sideItems.length > 0) {
+          itemsHtml += `<div class="side-section"><div class="fw-bold mb-2 text-dark">🍟 單點項目：</div>`;
+          sideItems.forEach(side => {
+            const sidePrice = globalSetupData.sidePrices[side.menu_item] || 0;
+            const subtotal = sidePrice * (side.qty || 1);
+            itemsHtml += `
+              <div class="d-flex justify-content-between align-items-center ms-3 mb-1">
+                <div class="text-secondary">• ${side.menu_item} <span class="fw-bold text-dark">x ${side.qty}</span></div>
+                <div class="fw-bold text-success">$${subtotal}</div>
+              </div>`;
+          });
+          itemsHtml += `</div>`;
+        }
+
+        const elapsedMins = (Date.now() - new Date(order.created_at).getTime()) / (1000 * 60);
+        const isAutoClosed = elapsedMins >= 20;
+
+        let statusBadge = '';
+        if (order.is_closed) {
+          statusBadge = '<span class="badge bg-secondary ms-2">已結單</span>';
+        } else if (order.is_voided) {
+          statusBadge = '<span class="badge bg-danger ms-2">已作廢</span>';
+        } else if (isAutoClosed) {
+          statusBadge = '<span class="badge badge-timeout ms-2" title="超過20分鐘自動結單">逾時結單</span>';
+        }
+
+        let deliveryBadge = order.is_delivery ? '<span class="badge bg-warning text-dark ms-2" style="font-size: 0.75rem;">外送</span>' : '';
+
+        let actionButtons = '';
+        if (!order.is_closed && !order.is_voided && !isAutoClosed) {
+          actionButtons = `
+            <button class="btn btn-sm btn-primary fw-bold" onclick="closeOrder('${order.id}')">結單</button>
+            <button class="btn btn-sm btn-outline-danger fw-bold" onclick="toggleVoidStatus('${order.id}', true)">作廢此單</button>
+          `;
+        }
+
+        let orderLinkHtml = '';
+        if (order.is_closed || order.is_voided || isAutoClosed) {
+          orderLinkHtml = `<span class="text-secondary fw-bold fs-6">單號: ${order.id}</span>`;
+        } else {
+          orderLinkHtml = `<a href="index.html?orderId=${order.id}" target="_blank" class="text-primary text-decoration-none fw-bold fs-6">單號: ${order.id} 🔗</a>`;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'card order-card' + (order.is_voided ? ' bg-light opacity-75' : '');
+        card.innerHTML = `
+          <div class="order-card-header">
+            <div>
+              <span class="badge ${order.is_voided ? 'bg-secondary' : 'bg-success'} fs-6 me-2">${timeStr}</span>
+              ${orderLinkHtml}
+              ${deliveryBadge}
+              ${statusBadge}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <h5 class="m-0 fw-bold ${order.is_voided ? 'text-muted text-decoration-line-through' : 'text-danger'} me-2">$ ${order.total_price}</h5>
+              ${actionButtons}
+            </div>
+          </div>
+          <div class="order-card-body">
+            ${itemsHtml || '<div class="text-muted">無明細內容</div>'}
+          </div>
+        `;
+        
+        if (isAfter3) {
+          containerAfter3.appendChild(card);
+        } else {
+          containerBefore3.appendChild(card);
+        }
+      });
+
+      if (containerBefore3.children.length === 0) {
+        containerBefore3.innerHTML = '<div class="text-center text-muted py-3">無下午3點前訂單</div>';
+      }
+      if (containerAfter3.children.length === 0) {
+        containerAfter3.innerHTML = '<div class="text-center text-muted py-3">無下午3點後訂單</div>';
+      }
+
+      // 根據目前選擇的篩選模式，動態更新上方顯示的總營業額與筆數
+      if (currentFilterMode === 'all') {
+        document.getElementById('dailyTotalRevenue').innerText = `$ ${totalRevenue.toLocaleString()}`;
+        document.getElementById('dailyOrderCount').innerText = validOrderCount;
+      } else if (currentFilterMode === 'before3') {
+        document.getElementById('dailyTotalRevenue').innerText = `$ ${before3Revenue.toLocaleString()}`;
+        document.getElementById('dailyOrderCount').innerText = before3Count;
+      } else if (currentFilterMode === 'after3') {
+        document.getElementById('dailyTotalRevenue').innerText = `$ ${after3Revenue.toLocaleString()}`;
+        document.getElementById('dailyOrderCount').innerText = after3Count;
+      }
+
+      document.getElementById('before3Revenue').innerText = `營業額: $${before3Revenue.toLocaleString()} (${before3Count}筆)`;
+      document.getElementById('after3Revenue').innerText = `營業額: $${after3Revenue.toLocaleString()} (${after3Count}筆)`;
+    }
+
+    // 切換訂單作廢狀態邏輯
+    async function toggleVoidStatus(orderId, setVoid) {
+      const actionText = setVoid ? '作廢' : '還原';
+      toggleLoading(true, `${actionText}處理中...`);
+      
+      try {
+        const { error } = await supabaseClient
+          .from('orders')
+          .update({ is_voided: setVoid })
+          .eq('id', orderId);
+          
+        if (error) throw error;
+        
+        const dateStr = document.getElementById('dailyViewTitle').innerText.split(' ')[0];
+        await loadMonthData(); 
+        await loadDailyOrders(dateStr); 
+        
+      } catch (err) {
+        console.error(err);
+        alert(`${actionText}失敗: ` + err.message);
+        toggleLoading(false);
+      }
+    }
+
+    // 結單邏輯
+    async function closeOrder(orderId) {
+      if (!confirm('確定要結單嗎？結單後將無法再修改此訂單。')) return;
+      toggleLoading(true, "結單處理中...");
+      
+      try {
+        const { error } = await supabaseClient
+          .from('orders')
+          .update({ is_closed: true })
+          .eq('id', orderId);
+          
+        if (error) throw error;
+        
+        const dateStr = document.getElementById('dailyViewTitle').innerText.split(' ')[0];
+        await loadMonthData(); 
+        await loadDailyOrders(dateStr);
+        
+      } catch (err) {
+        console.error(err);
+        alert('結單失敗: ' + err.message);
+        toggleLoading(false);
+      }
+    }
+  </script>
+</body>
+</html>
