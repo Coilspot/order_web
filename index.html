@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>點餐系統</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* 預設網頁背景色 - 採用溫潤灰泥色 (留出底部固定列的高度空間，避免內容遮擋) */
+    body { background-color: #DBD5BE; padding-bottom: 100px; transition: background-color 0.3s ease; }
+    
+    /* 修改模式下的網頁背景色 (使用顯眼且溫暖的橘黃色做識別) */
+    body.edit-mode { background-color: #FFB74D !important; } 
+    
+    /* 緊湊型容器，縮減上下外邊距 */
+    .main-container { max-width: 700px; margin: 15px auto; }
+
+    /* 讀取/查詢舊訂單區塊底色 */
+    .query-card { border: 1px solid #D8EFDC; border-radius: 10px; background-color: #F8F8F8; margin-bottom: 12px !important; }
+
+    /* 組合餐卡片底色 - 縮減內外邊距 (padding 12px) */
+    .combo-card { border: 1px solid #E9ECEF; border-radius: 10px; background-color: #F8F8F8; padding: 12px; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+
+    /* 組合餐內部容器底色 - 縮減內邊距 (padding 8px 10px) */
+    .dish-radio-group { background-color: #FDFDFD; padding: 8px 10px; border-radius: 8px; border: 1px solid #E9ECEF; margin-bottom: 8px !important; }
+    
+    /* 橫向彈性容器：取消換行，確保排在同一行 */
+    .custom-btn-flex-container {
+      display: flex;
+      gap: 4px;
+      width: 100%;
+      padding-bottom: 2px;
+      overflow-x: auto;
+    }
+    
+    /* 強制取消所有按鈕邊框 */
+    .btn { border: none !important; }
+    .btn-outline-primary { background-color: #E9ECEF; color: #507D4D; }
+    .btn-outline-primary:hover { background-color: #507D4D !important; color: #ffffff !important; }
+
+    /* 逾時結單鎖定標籤樣式 */
+    .badge-timeout { background-color: #78909C !important; color: #ffffff !important; }
+
+    /* 清空內容按鈕底色 - 高度+25%, 字體+35% */
+    .btn-outline-danger { 
+      background-color: #EA6666; 
+      color: #F0F0F0; 
+      padding-top: 6px !important; 
+      padding-bottom: 6px !important; 
+      font-size: 1.15rem !important; 
+    }
+    
+    /* 扁平化按鈕樣式（餐點、升級選項）- 高度+25%, 字體+35% */
+    .btn-flat-style {
+      flex: 1 1 0%;
+      min-width: 55px;
+      background-color: #E9ECEF !important;
+      color: #495057 !important;
+      transition: all 0.2s ease;
+      font-size: 1.08rem !important;
+      padding: 7px 2px !important;
+      text-align: center;
+      white-space: nowrap;
+    }
+    
+    /* 滑鼠懸停與選取樣式 */
+    .btn-flat-style:hover { background-color: #D8EFDC !important; }
+    .btn-check:checked + .btn-flat-style { background-color: #507D4D !important; color: #fff !important; font-weight: bold; }
+    .btn-check:checked + .btn-outline-primary { background-color: #507D4D !important; color: #fff !important; }
+    .btn-check:not(:checked) + .btn-outline-primary:hover { background-color: #D8EFDC !important; color: #6c757d !important; }
+
+    /* 停用時的狀態 */
+    .btn-check:disabled + .btn-flat-style {
+      background-color: #CCCCCC !important;
+      color: #adb5bd !important;
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* 單點區塊佈局調整 */
+    #side-card { background-color: #F8F8F8 !important; }
+    .side-item-row { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      padding: 6px 0; 
+      border-bottom: 1px solid #edf0f2; 
+      background-color: #F8F8F8; 
+    }
+    .side-item-row:last-child { border-bottom: none; }
+    
+    /* 「讀取訂單」按鈕色 */
+    .btn-query { background-color: #FFE699; color: #6c757d; font-weight: bold; }
+    .btn-query:hover { background-color: #FFCC66; color: #495057; cursor: pointer; }
+
+    .combo-subtotal { font-size: 1.05rem; }
+
+    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; z-index: 9999; font-size: 1.2rem; font-weight: bold; }
+    
+    /* ＝＝＝ 全新 Stepper 數量增減元件樣式（統一大小與間距） ＝＝＝ */
+    .stepper-container {
+      display: inline-flex;
+      align-items: center;
+      background-color: #E9ECEF; /* 淺灰外框底色 */
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+    /* 統一按鈕尺寸：確保加減 1 與加減 10 大小一致 */
+    .stepper-btn {
+      background: transparent;
+      border: none;
+      color: #495057;
+      font-weight: bold;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      border-radius: 6px;
+      transition: 0.2s;
+    }
+    .stepper-btn:active { opacity: 0.6; }
+    
+    /* 加減 1 按鈕 (無底色去背) */
+    .stepper-btn-1 {
+      background: transparent;
+      font-size: 1.15rem;
+    }
+    
+    /* 加減 10 按鈕 (深一階灰色) */
+    .stepper-btn-10 {
+      background-color: #CED4DA; /* 深一階灰色 */
+      font-size: 0.9rem;
+    }
+    .stepper-btn-10:hover { background-color: #ADB5BD; }
+
+    /* 白色數量輸入框 */
+    .stepper-input-box {
+      width: 38px;
+      height: 32px;
+      border: none;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.05rem;
+      background-color: #FFFFFF;
+      border-radius: 6px;
+      margin: 0 1px;
+      color: #212529;
+    }
+    /* ＝＝＝ 結束 Stepper 樣式 ＝＝＝ */
+
+    /* 自訂按鈕色彩 */
+    #btnAddCombo { 
+      background-color: #7A9A78; 
+      border-color: #7A9A78; 
+      color: #FFFFFF; 
+      padding-top: 10px !important; 
+      padding-bottom: 10px !important; 
+      font-size: 1.15rem !important; 
+    }
+    #btnAddCombo:hover { background-color: #507D4D; }
+    #btnSubmitOrder.btn-primary { background-color: #507D4D !important; color: #FFFFFF; }
+    #btnSubmitOrder.btn-primary:hover { background-color: #3E633C !important; }
+    .text-primary { color: #507D4D !important; }
+    .text-danger { color: #507D4D !important; }
+
+    /* 強制所有選項按鈕保持等寬，並啟用容器查詢自動調整文字大小 */
+    .custom-btn-flex-container .btn,
+    .btn-flat-style,
+    .combo-type-segmented .btn {
+      flex: 1 1 0% !important;        
+      min-width: 0 !important;        
+      container-type: inline-size;     
+      
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      text-align: center;
+      padding: 7px 2px !important;
+      background-color: #E9ECEF !important;
+      color: #495057 !important;
+      transition: all 0.2s ease;
+      
+      font-size: clamp(0.7rem, 13cqi, 1.08rem) !important;
+      letter-spacing: -0.2px;          
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 固定底部點餐與結帳列樣式 */
+    .fixed-bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: #FFFFFF;
+      box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.12);
+      padding: 10px 16px;
+      z-index: 1030;
+      border-top: 1px solid #E9ECEF;
+    }
+    .fixed-bottom-bar .bar-container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    /* 提示訊息文字 */
+    .submit-msg {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #28a745;
+      line-height: 1.2;
+      display: none;
+    }
+
+    /* 定義可點選的結單/作廢按鈕樣式 */
+    .order-action-btn {
+      width: 42px !important;
+      height: 24px !important;
+      padding: 0 !important;
+      font-size: 0.75rem !important;
+      line-height: 22px !important;
+      text-align: center !important;
+      flex-shrink: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background-color: #E9ECEF !important;
+    }
+    .btn-close-order-action { color: #333333 !important; }
+    .btn-void-order-action { color: #dc3545 !important; }
+
+    /* 單點快捷下拉選單去背樣式 */
+    .shortcut-select-transparent {
+      background-color: transparent;
+      border: none;
+      font-weight: bold;
+      color: #507D4D;
+      font-size: 0.95rem;
+      cursor: pointer;
+      outline: none;
+      box-shadow: none !important;
+      padding: 0 2px;
+      width: 100%;
+    }
+    .shortcut-select-transparent:focus { outline: none; border: none; }
+  </style>
+</head>
+<body>
+
+  <div id="loadingOverlay" class="loading-overlay" style="display:none;">處理中...</div>
+
+  <div class="container-fluid px-3 my-3">
+    <div class="row g-3">
+      <!-- 左側最近20筆訂單側邊欄 -->
+      <div class="col-md-4 col-lg-3">
+        <div class="card shadow-sm h-100" style="background-color: #F8F8F8; border-color: #D8EFDC;">
+          <div class="card-header text-white fw-bold py-2 d-flex justify-content-between align-items-center" style="background-color: #507D4D;">
+            <span class="fs-7">🕒 最近 20 筆訂單</span>
+            <button class="btn btn-sm btn-outline-light py-0 px-2 fs-7" type="button" onclick="fetchRecentOrders()" style="background: none; border: 1px solid #FFF;">刷新</button>
+          </div>
+          <div class="card-body p-2" id="recentOrdersContainer" style="max-height: calc(100vh - 120px); overflow-y: auto;">
+            <div class="text-muted text-center py-3 fs-7">載入中...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右側主點餐區塊 -->
+      <div class="col-md-8 col-lg-9">
+        <div class="main-container m-0" style="max-width: 100%;">
+          
+          <!-- 單點快捷鍵區塊 (一列四個，緊湊排版) -->
+          <div class="card mb-3 border-0 shadow-sm" style="background-color: #F8F8F8;">
+            <div class="card-body p-2">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold m-0 text-dark">⚡ 單點快捷點餐 <span class="text-muted fs-7 font-normal">(選擇品項後可直接按鈕調整數量)</span></h6>
+              </div>
+              <div class="row g-1" id="shortcutContainer">
+                <!-- 4個快捷列將由 JavaScript 動態生成渲染，排在同一列 -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 熱銷組合區塊 -->
+          <div class="card mb-3 border-0 shadow-sm" style="background-color: #F8F8F8;">
+            <div class="card-body p-2">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold m-0 text-dark">🔥 熱銷組合 <span class="text-muted fs-7 font-normal">(點擊載入 / 按 [更新] 儲存當前點餐)</span></h6>
+              </div>
+              
+              <div class="d-flex gap-2 align-items-stretch">
+                <!-- 左側 5 組熱銷組合按鈕 -->
+                <div class="flex-grow-1 d-flex flex-column gap-1">
+                  <div class="input-group input-group-sm">
+                    <button class="btn fw-bold px-2 py-1 fs-7" type="button" onclick="savePreset(1)" style="background-color: #7A9A78; color: #FFF;">更新</button>
+                    <button class="btn btn-outline-primary text-start flex-grow-1 text-truncate py-1 px-2 fw-medium fs-7" type="button" id="presetBtn1" onclick="loadPreset(1)">
+                      1. (空) 點擊 [更新] 儲存當前點餐
+                    </button>
+                  </div>
+                  <div class="input-group input-group-sm">
+                    <button class="btn fw-bold px-2 py-1 fs-7" type="button" onclick="savePreset(2)" style="background-color: #7A9A78; color: #FFF;">更新</button>
+                    <button class="btn btn-outline-primary text-start flex-grow-1 text-truncate py-1 px-2 fw-medium fs-7" type="button" id="presetBtn2" onclick="loadPreset(2)">
+                      2. (空) 點擊 [更新] 儲存當前點餐
+                    </button>
+                  </div>
+                  <div class="input-group input-group-sm">
+                    <button class="btn fw-bold px-2 py-1 fs-7" type="button" onclick="savePreset(3)" style="background-color: #7A9A78; color: #FFF;">更新</button>
+                    <button class="btn btn-outline-primary text-start flex-grow-1 text-truncate py-1 px-2 fw-medium fs-7" type="button" id="presetBtn3" onclick="loadPreset(3)">
+                      3. (空) 點擊 [更新] 儲存當前點餐
+                    </button>
+                  </div>
+                  <div class="input-group input-group-sm">
+                    <button class="btn fw-bold px-2 py-1 fs-7" type="button" onclick="savePreset(4)" style="background-color: #7A9A78; color: #FFF;">更新</button>
+                    <button class="btn btn-outline-primary text-start flex-grow-1 text-truncate py-1 px-2 fw-medium fs-7" type="button" id="presetBtn4" onclick="loadPreset(4)">
+                      4. (空) 點擊 [更新] 儲存當前點餐
+                    </button>
+                  </div>
+                  <div class="input-group input-group-sm">
+                    <button class="btn fw-bold px-2 py-1 fs-7" type="button" onclick="savePreset(5)" style="background-color: #7A9A78; color: #FFF;">更新</button>
+                    <button class="btn btn-outline-primary text-start flex-grow-1 text-truncate py-1 px-2 fw-medium fs-7" type="button" id="presetBtn5" onclick="loadPreset(5)">
+                      5. (空) 點擊 [更新] 儲存當前點餐
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- 右側齊高直式送出訂單按鈕 -->
+                <button type="button" class="btn btn-submit-order btn-primary fw-bold fs-5 px-3 d-flex flex-column justify-content-center align-items-center text-center shadow-sm" id="btnSubmitOrderTop" style="min-width: 110px; background-color: #507D4D !important; border-color: #507D4D !important; line-height: 1.2;">
+                  <span>送出</span>
+                  <span>訂單</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 清空內容按鈕區塊 -->
+          <div class="mb-2">
+            <button type="button" class="btn btn-outline-danger btn-sm fw-bold w-100" id="btnResetOrder">清空內容</button>
+          </div>
+
+          <input type="hidden" id="queryOrderId" value="">
+
+          <!-- 組合餐放置容器 -->
+          <div id="comboContainer"></div>
+
+          <div class="mb-3">
+            <button type="button" class="btn btn-secondary btn-sm w-100 fw-bold" id="btnAddCombo">+ 新增組合</button>
+          </div>
+
+          <hr class="my-2">
+
+          <!-- 可折疊單點列表 -->
+          <div class="d-flex justify-content-between align-items-center my-2" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#sideItemsCollapse" aria-expanded="false">
+            <h6 class="fw-bold m-0 text-dark">單點列表 <span class="text-muted fs-7">(點擊折疊/展開)</span></h6>
+            <span class="text-secondary small fw-bold" id="sideCollapseIcon">▲</span>
+          </div>
+          
+          <div class="collapse" id="sideItemsCollapse">
+            <div class="card mb-3" id="side-card">
+              <div class="card-body py-1 px-3" id="sideItemsContainer"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 固定底部區塊 -->
+  <div class="fixed-bottom-bar">
+    <div class="bar-container d-flex justify-content-between align-items-center gap-2">
+      <div class="d-flex align-items-baseline gap-2">
+        <span class="fw-bold text-secondary fs-6 mb-0">總計金額</span>
+        <span class="fw-bold fs-3 mb-0" style="color: #507D4D !important;">$<span id="grandTotalDisplay">0</span></span>
+      </div>
+      <div id="statusMessage" class="submit-msg my-auto"></div>
+
+      <div class="d-flex gap-2 align-items-center">
+        <!-- 外送標籤開關 -->
+        <div class="form-check form-switch fs-5 d-flex align-items-center me-2 mb-0">
+          <input class="form-check-input mt-0 me-2" type="checkbox" id="chkDelivery" style="cursor: pointer;">
+          <label class="form-check-label fw-bold" for="chkDelivery" style="color: #507D4D; cursor: pointer; user-select: none;">外送</label>
+        </div>
+
+        <button type="button" class="btn btn-secondary py-2 px-3 fs-6 fw-bold d-none" id="btnCancelEdit">取消編輯</button>
+        <button type="button" class="btn btn-submit-order btn-primary py-2 px-3 fs-5 fw-bold" id="btnSubmitOrder" style="width: 150px; background-color: #507D4D !important; border-color: #507D4D !important;">送出訂單</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    const SUPABASE_URL = 'https://kunjdfvluaoyfszocfzb.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_B_-aIszU8wV0RyFnXwid8g_BMc1OVv2';
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    let globalSetupData = null;
+    let comboCounter = 0;
+    let isCurrentOrderClosed = false;
+    let msgTimer = null;
+    let currentEditingOrderId = null;
+
+    function getFormattedTimestamp() {
+      const n = new Date();
+      return `${n.getFullYear()}${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}_${String(n.getHours()).padStart(2,'0')}${String(n.getMinutes()).padStart(2,'0')}${String(n.getSeconds()).padStart(2,'0')}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderPresetsUI();
+      fetchSetupConfig().then(() => {
+        fetchRecentOrders();
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('orderId');
+        if (orderId) {
+          loadOldOrder(orderId);
+        }
+      });
+      document.getElementById('btnAddCombo').addEventListener('click', () => { addComboCard(); calculateLiveTotal(); });
+      document.getElementById('btnResetOrder').addEventListener('click', () => { if(confirm("確定要清空所有內容？")) resetOrderContent(); });
+      document.getElementById('btnCancelEdit').addEventListener('click', cancelEdit);
+
+      document.getElementById('btnSubmitOrder').addEventListener('click', submitOrder);
+      document.getElementById('btnSubmitOrderTop').addEventListener('click', submitOrder);
+
+      const sideCollapseEl = document.getElementById('sideItemsCollapse');
+      const sideIcon = document.getElementById('sideCollapseIcon');
+      if (sideCollapseEl && sideIcon) {
+        sideCollapseEl.addEventListener('hide.bs.collapse', () => { sideIcon.innerText = '▲'; });
+        sideCollapseEl.addEventListener('show.bs.collapse', () => { sideIcon.innerText = '▼'; });
+      }
+    });
+
+    function toggleLoading(show, text = "處理中...") {
+      const overlay = document.getElementById('loadingOverlay');
+      overlay.innerText = text;
+      overlay.style.display = show ? 'flex' : 'none';
+    }
+
+    function showInlineMessage(text, isError = false) {
+      const msgEl = document.getElementById('statusMessage');
+      msgEl.innerText = text;
+      msgEl.style.color = isError ? '#d9534f' : '#28a745';
+      msgEl.style.display = 'block';
+
+      if (msgTimer) clearTimeout(msgTimer);
+      msgTimer = setTimeout(() => {
+        msgEl.style.display = 'none';
+      }, 5000);
+    }
+
+    function cancelEdit() {
+      resetOrderContent();
+      showInlineMessage("已取消編輯模式");
+    }
+
+    function resetOrderContent() {
+      document.getElementById('comboContainer').innerHTML = '';
+      document.getElementById('queryOrderId').value = '';
+      document.querySelectorAll('.side-qty-input').forEach(input => input.value = 0);
+      comboCounter = 0;
+      isCurrentOrderClosed = false;
+      currentEditingOrderId = null;
+      
+      const chkDelivery = document.getElementById('chkDelivery');
+      if(chkDelivery) chkDelivery.checked = false;
+      
+      document.body.classList.remove('edit-mode');
+      const cancelBtn = document.getElementById('btnCancelEdit');
+      if (cancelBtn) cancelBtn.classList.add('d-none');
+      
+      const sideCollapseEl = document.getElementById('sideItemsCollapse');
+      if (sideCollapseEl && sideCollapseEl.classList.contains('show')) {
+        const bsCollapse = bootstrap.Collapse.getInstance(sideCollapseEl) || new bootstrap.Collapse(sideCollapseEl, { toggle: false });
+        bsCollapse.hide();
+      }
+
+      addComboCard();
+      calculateLiveTotal();
+      fetchRecentOrders();
+    }
+
+    /* 下拉選單快捷鍵相關邏輯 (改為一列四個) */
+    function renderShortcutsUI() {
+      const container = document.getElementById('shortcutContainer');
+      container.innerHTML = '';
+      
+      const savedShortcuts = JSON.parse(localStorage.getItem('order_shortcuts_dropdown') || '{}');
+      const availableSides = globalSetupData.side || [];
+
+      for (let i = 1; i <= 4; i++) {
+        const selectedItem = savedShortcuts[i] || "";
+        
+        const col = document.createElement('div');
+        // 使用 col-12 col-sm-6 col-md-3 讓 4 個區塊完美排列在同一列
+        col.className = 'col-12 col-sm-6 col-md-3';
+        
+        let optionsHtml = '<option value="">--品項--</option>';
+        availableSides.forEach(s => {
+          optionsHtml += `<option value="${s.name}" ${s.name === selectedItem ? 'selected' : ''}>${s.name} ($${s.price})</option>`;
+        });
+
+        col.innerHTML = `
+          <div class="d-flex align-items-center justify-content-between p-1 bg-white border rounded shadow-sm">
+            <select class="form-select form-select-sm shortcut-select-transparent text-truncate" id="sc_select_${i}" onchange="onShortcutChange(${i})">
+              ${optionsHtml}
+            </select>
+            
+            <div class="stepper-container flex-shrink-0">
+              <button class="stepper-btn stepper-btn-10" type="button" onclick="adjustShortcutQty(${i}, -10)">-10</button>
+              <button class="stepper-btn stepper-btn-1" type="button" onclick="adjustShortcutQty(${i}, -1)">-</button>
+              <input type="text" class="stepper-input-box" id="sc_qty_${i}" value="0" readonly>
+              <button class="stepper-btn stepper-btn-1" type="button" onclick="adjustShortcutQty(${i}, 1)">+</button>
+              <button class="stepper-btn stepper-btn-10" type="button" onclick="adjustShortcutQty(${i}, 10)">+10</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(col);
+      }
+      syncShortcutQtysFromSide();
+    }
+
+    function onShortcutChange(index) {
+      const selectEl = document.getElementById(`sc_select_${index}`);
+      const val = selectEl.value;
+      
+      let savedShortcuts = JSON.parse(localStorage.getItem('order_shortcuts_dropdown') || '{}');
+      savedShortcuts[index] = val;
+      localStorage.setItem('order_shortcuts_dropdown', JSON.stringify(savedShortcuts));
+
+      syncShortcutQtysFromSide();
+    }
+
+    function adjustShortcutQty(index, delta) {
+      const selectEl = document.getElementById(`sc_select_${index}`);
+      const targetName = selectEl ? selectEl.value : "";
+      
+      if (!targetName) {
+        showInlineMessage("請先選擇單點品項！", true);
+        return;
+      }
+
+      const sideInput = document.querySelector(`.side-qty-input[data-name="${targetName}"]`);
+      if (sideInput) {
+        let currentQty = parseInt(sideInput.value) || 0;
+        let newQty = Math.max(0, currentQty + delta);
+        sideInput.value = newQty;
+        calculateLiveTotal();
+      }
+    }
+
+    function syncShortcutQtysFromSide() {
+      for (let i = 1; i <= 4; i++) {
+        const selectEl = document.getElementById(`sc_select_${i}`);
+        const qtyEl = document.getElementById(`sc_qty_${i}`);
+        if (selectEl && qtyEl) {
+          const targetName = selectEl.value;
+          if (targetName) {
+            const sideInput = document.querySelector(`.side-qty-input[data-name="${targetName}"]`);
+            qtyEl.value = sideInput ? sideInput.value : 0;
+          } else {
+            qtyEl.value = 0;
+          }
+        }
+      }
+    }
+
+    async function fetchSetupConfig() {
+      toggleLoading(true, "系統資料載入中...");
+      try {
+        if (!supabaseClient) throw new Error("Supabase 客戶端尚未初始化。");
+        
+        const { data, error } = await supabaseClient
+          .from('menu_items')
+          .select('*')
+          .eq('is_active', true)
+          .order('id', { ascending: true });
+          
+        if (error) throw error;
+        
+        const setupData = {
+          singleCombo: [],
+          singleComboPrices: {},
+          comboTypePrices: {},
+          comboLimits: {},
+          comboDefaults: {},
+          upgrade: [],
+          upgradePrices: {},
+          side: [],
+          sidePrices: {}
+        };
+        
+        data.forEach(item => {
+          const category = item.category;
+          const name = item.name;
+          const price = item.price || 0;
+          
+          if (category === 'main') {
+            setupData.singleCombo.push({ name: name, price: price });
+            setupData.singleComboPrices[name] = price;
+          } else if (category === 'side') {
+            setupData.side.push({ name: name, price: price });
+            setupData.sidePrices[name] = price;
+          } else if (category === 'upgrade') {
+            setupData.upgrade.push({ name: name, price: price });
+            setupData.upgradePrices[name] = price;
+          } else if (category === 'combo') {
+            setupData.comboTypePrices[name] = price;
+            
+            // 讀取 Supabase 設定的可複選數量上限及預設值，若欄位不存在則採用 Fallback 規則
+            let limit = item.selection_limit;
+            if (limit === undefined || limit === null) {
+              if (name.includes("單點")) limit = 1;
+              else if (name.includes("雙拼")) limit = 2;
+              else if (name.includes("三拼")) limit = 3;
+              else if (name.includes("四拼")) limit = 4;
+              else limit = 1;
+            }
+            setupData.comboLimits[name] = limit;
+
+            let defaults = [];
+            if (item.default_items) {
+              defaults = item.default_items.split(',').map(s => s.trim());
+            } else {
+              if (name.includes("單點")) defaults = ["排骨"];
+              else if (name.includes("雙拼")) defaults = ["排骨", "鯖魚"];
+              else if (name.includes("三拼")) defaults = ["排骨", "鯖魚", "滷雞腿"];
+              else if (name.includes("四拼")) defaults = ["排骨", "鯖魚", "滷雞腿", "鯖魚"];
+            }
+            setupData.comboDefaults[name] = defaults;
+          }
+        });
+        
+        if (typeof setupData.comboTypePrices["單點"] === "undefined") {
+          setupData.comboTypePrices["單點"] = 0;
+        }
+        
+        globalSetupData = setupData;
+        
+        renderSideItemsList(globalSetupData.side);
+        renderShortcutsUI(); 
+        addComboCard();
+        calculateLiveTotal();
+        toggleLoading(false);
+      } catch (err) {
+        console.error(err);
+        showInlineMessage("無法取得設定", true);
+        toggleLoading(false);
+      }
+    }
+
+    function renderSideItemsList(sideList) {
+      const container = document.getElementById('sideItemsContainer');
+      container.innerHTML = '';
+      sideList.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'side-item-row flex-wrap gap-2';
+        row.innerHTML = `
+          <span class="fw-medium text-secondary" style="font-size: 1.05rem;">${item.name} <span class="text-muted">($${item.price})</span></span>
+          <div class="stepper-container">
+            <button class="stepper-btn stepper-btn-10 btn-side-minus-10" type="button">-10</button>
+            <button class="stepper-btn stepper-btn-1 btn-side-minus" type="button">-</button>
+            <input type="text" class="stepper-input-box side-qty-input" data-name="${item.name}" value="0" readonly>
+            <button class="stepper-btn stepper-btn-1 btn-side-plus" type="button">+</button>
+            <button class="stepper-btn stepper-btn-10 btn-side-plus-10" type="button">+10</button>
+          </div>
+        `;
+        
+        const qtyInput = row.querySelector('.side-qty-input');
+        
+        row.querySelector('.btn-side-minus-10').addEventListener('click', () => {
+          let val = parseInt(qtyInput.value) || 0;
+          qtyInput.value = Math.max(0, val - 10); calculateLiveTotal();
+        });
+        row.querySelector('.btn-side-minus').addEventListener('click', () => {
+          let val = parseInt(qtyInput.value) || 0;
+          if (val > 0) { qtyInput.value = val - 1; calculateLiveTotal(); }
+        });
+        row.querySelector('.btn-side-plus').addEventListener('click', () => {
+          let val = parseInt(qtyInput.value) || 0;
+          qtyInput.value = val + 1; calculateLiveTotal();
+        });
+        row.querySelector('.btn-side-plus-10').addEventListener('click', () => {
+          let val = parseInt(qtyInput.value) || 0;
+          qtyInput.value = val + 10; calculateLiveTotal();
+        });
+
+        container.appendChild(row);
+      });
+    }
+
+    function syncRowExclusion(card) {
+      // 由於改為單列按鈕與複選，原Radio排除機制已棄用
+    }
+
+    function addComboCard(preFillData = null) {
+      comboCounter++;
+      const id = `combo_${comboCounter}`;
+      const card = document.createElement('div');
+      card.className = 'card combo-card';
+      card.id = id;
+      
+      const comboTypes = Object.keys(globalSetupData.comboTypePrices);
+
+      const comboTypesHtml = comboTypes.map((type, index) => {
+        const radioId = `type${index}_${id}`;
+        const isChecked = (!preFillData && type === "單點") ? "checked" : "";
+        return `
+          <input type="radio" class="btn-check type-radio" name="type_${id}" id="${radioId}" value="${type}" ${isChecked}>
+          <label class="btn btn-outline-primary fw-bold" for="${radioId}">${type}</label>
+        `;
+      }).join('');
+
+      card.innerHTML = `
+        <div class="mb-2">
+          <div class="custom-btn-flex-container combo-type-segmented" role="group">
+            ${comboTypesHtml}
+          </div>
+        </div>
+
+        <div class="dish-radio-group" id="${id}_dishes"></div>
+        
+        <div class="mb-2">
+          <div class="custom-btn-flex-container" id="${id}_upgrades">
+            ${globalSetupData.upgrade.map((u, idx) => {
+              const upgradeId = `upgrade_${id}_idx${idx}`;
+              return `
+                <input type="radio" class="btn-check upgrade-radio-item" name="upgrade_${id}" id="${upgradeId}" value="${u.name}" ${idx === 0 ? 'checked' : ''}>
+                <label class="btn btn-flat-style fw-medium" for="${upgradeId}">${u.name}</label>
+              `;
+            }).join('')}
+          </div>
+        </div>
+        
+        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-danger btn-sm fw-bold btn-delete-combo py-1" style="font-size: 0.9rem !important;">刪除此組合</button>
+          
+          <div class="d-flex align-items-center gap-2">
+            <div class="stepper-container">
+              <button class="stepper-btn stepper-btn-10 btn-minus-10" type="button">-10</button>
+              <button class="stepper-btn stepper-btn-1 btn-minus" type="button">-</button>
+              <input type="text" class="stepper-input-box combo-qty-input" value="1" readonly>
+              <button class="stepper-btn stepper-btn-1 btn-plus" type="button">+</button>
+              <button class="stepper-btn stepper-btn-10 btn-plus-10" type="button">+10</button>
+            </div>
+            <div class="text-danger fw-bold combo-subtotal mb-0 ms-1">小計: $0</div>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('comboContainer').appendChild(card);
+
+      const qtyInput = card.querySelector('.combo-qty-input');
+      
+      card.querySelector('.btn-minus-10').addEventListener('click', () => {
+        let val = parseInt(qtyInput.value) || 0;
+        qtyInput.value = Math.max(0, val - 10); calculateLiveTotal();
+      });
+      card.querySelector('.btn-minus').addEventListener('click', () => {
+        let val = parseInt(qtyInput.value) || 0;
+        if (val > 0) { qtyInput.value = val - 1; calculateLiveTotal(); }
+      });
+      card.querySelector('.btn-plus').addEventListener('click', () => {
+        let val = parseInt(qtyInput.value) || 0;
+        qtyInput.value = val + 1; calculateLiveTotal();
+      });
+      card.querySelector('.btn-plus-10').addEventListener('click', () => {
+        let val = parseInt(qtyInput.value) || 0;
+        qtyInput.value = val + 10; calculateLiveTotal();
+      });
+
+      card.querySelectorAll('.type-radio').forEach(radio => {
+        radio.addEventListener('change', function() {
+          renderDishRadios(this.value, card.querySelector(`#${id}_dishes`), card, id);
+          calculateLiveTotal();
+        });
+      });
+
+      card.querySelectorAll('.upgrade-radio-item').forEach(radio => {
+        radio.addEventListener('change', calculateLiveTotal);
+      });
+
+      card.querySelector('.btn-delete-combo').addEventListener('click', () => { card.remove(); calculateLiveTotal(); });
+
+      if (preFillData) {
+        let targetType = preFillData.type;
+        const targetRadio = card.querySelector(`input[name="type_${id}"][value="${targetType}"]`);
+        
+        if (targetRadio) {
+          targetRadio.checked = true;
+        } else {
+          const firstRadio = card.querySelector(`input[name="type_${id}"]`);
+          if (firstRadio) firstRadio.checked = true;
+          targetType = firstRadio ? firstRadio.value : "單點";
+        }
+        
+        qtyInput.value = preFillData.qty;
+        
+        const targetUpgrade = card.querySelector(`input[name="upgrade_${id}"][value="${preFillData.upgrade}"]`);
+        if (targetUpgrade) targetUpgrade.checked = true;
+        
+        renderDishRadios(targetType, card.querySelector(`#${id}_dishes`), card, id, preFillData.items);
+      } else { 
+        renderDishRadios("單點", card.querySelector(`#${id}_dishes`), card, id); 
+      }
+    }
+
+    function renderDishRadios(typeValue, targetDiv, card, cardId, preSelectedItems = null) {
+      targetDiv.innerHTML = '';
+      
+      const limit = globalSetupData.comboLimits[typeValue] || 1;
+      let selectedArray = [];
+      
+      if (preSelectedItems) {
+        selectedArray = [...preSelectedItems];
+      } else {
+        selectedArray = [...(globalSetupData.comboDefaults[typeValue] || [])];
+      }
+
+      // 限制不超過上限
+      if (selectedArray.length > limit) {
+        selectedArray = selectedArray.slice(0, limit);
+      }
+
+      card.dataset.selectedDishes = JSON.stringify(selectedArray);
+
+      const optionsFlex = document.createElement('div');
+      optionsFlex.className = 'custom-btn-flex-container flex-wrap';
+
+      globalSetupData.singleCombo.forEach((d, idx) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'position-relative d-inline-block m-1';
+        wrapper.style.flex = '1 1 0%';
+        wrapper.style.minWidth = '85px';
+
+        wrapper.innerHTML = `
+          <div class="position-relative w-100 h-100">
+            <button type="button" class="btn btn-flat-style w-100 fw-medium py-2 px-1 text-truncate" id="dishBtn_${cardId}_${idx}" style="font-size: 1rem !important; height: 100%;">
+              ${d.name}
+            </button>
+            <div id="minus_${cardId}_${idx}" class="position-absolute d-none align-items-center justify-content-center fw-bold text-white cursor-pointer" 
+                 style="top: 0; left: 0; bottom: 0; width: 25%; background-color: rgba(220, 53, 69, 0.65); border-radius: 4px 0 0 4px; font-size: 1.2rem; z-index: 5;">
+              -
+            </div>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success d-none" 
+                  style="padding: 4px 6px; font-size: 0.75rem; z-index: 10;" 
+                  id="count_${cardId}_${idx}">
+              0
+            </span>
+          </div>
+        `;
+
+        const mainBtn = wrapper.querySelector(`#dishBtn_${cardId}_${idx}`);
+        const minusBtn = wrapper.querySelector(`#minus_${cardId}_${idx}`);
+
+        mainBtn.addEventListener('click', () => {
+          let currentSelected = JSON.parse(card.dataset.selectedDishes || "[]");
+          if (currentSelected.length < limit) {
+            currentSelected.push(d.name);
+            card.dataset.selectedDishes = JSON.stringify(currentSelected);
+            updateDishButtonsUI(card, cardId, limit);
+            calculateLiveTotal();
+          } else {
+            showInlineMessage(`此組合餐只能選擇 ${limit} 道主餐！`, true);
+          }
+        });
+
+        minusBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          let currentSelected = JSON.parse(card.dataset.selectedDishes || "[]");
+          const itemIndex = currentSelected.indexOf(d.name);
+          if (itemIndex > -1) {
+            currentSelected.splice(itemIndex, 1);
+            card.dataset.selectedDishes = JSON.stringify(currentSelected);
+            updateDishButtonsUI(card, cardId, limit);
+            calculateLiveTotal();
+          }
+        });
+
+        optionsFlex.appendChild(wrapper);
+      });
+
+      targetDiv.appendChild(optionsFlex);
+      updateDishButtonsUI(card, cardId, limit);
+    }
+
+    function updateDishButtonsUI(card, cardId, limit) {
+      const currentSelected = JSON.parse(card.dataset.selectedDishes || "[]");
+      const counts = {};
+      currentSelected.forEach(name => {
+        counts[name] = (counts[name] || 0) + 1;
+      });
+
+      globalSetupData.singleCombo.forEach((d, idx) => {
+        const count = counts[d.name] || 0;
+        const mainBtn = card.querySelector(`#dishBtn_${cardId}_${idx}`);
+        const minusBtn = card.querySelector(`#minus_${cardId}_${idx}`);
+        const countBadge = card.querySelector(`#count_${cardId}_${idx}`);
+
+        if (mainBtn) {
+          if (count > 0) {
+            mainBtn.style.setProperty('background-color', '#507D4D', 'important');
+            mainBtn.style.setProperty('color', '#FFFFFF', 'important');
+            mainBtn.classList.add('fw-bold');
+
+            if (minusBtn) {
+              minusBtn.classList.remove('d-none');
+              minusBtn.classList.add('d-flex');
+            }
+            if (countBadge) {
+              countBadge.classList.remove('d-none');
+              countBadge.innerText = count;
+            }
+          } else {
+            mainBtn.style.removeProperty('background-color');
+            mainBtn.style.removeProperty('color');
+            mainBtn.classList.remove('fw-bold');
+
+            if (minusBtn) {
+              minusBtn.classList.remove('d-flex');
+              minusBtn.classList.add('d-none');
+            }
+            if (countBadge) countBadge.classList.add('d-none');
+          }
+        }
+      });
+    }
+
+    function calculateLiveTotal() {
+      if (!globalSetupData) return;
+      let grandTotal = 0;
+
+      document.querySelectorAll('.combo-card').forEach(card => {
+        const checkedTypeRadio = card.querySelector('.type-radio:checked');
+        const type = checkedTypeRadio ? checkedTypeRadio.value : "單點";
+        const qty = parseInt(card.querySelector('.combo-qty-input').value) || 0;
+        
+        const checkedUpgrade = card.querySelector('.upgrade-radio-item:checked');
+        const upgradeName = checkedUpgrade ? checkedUpgrade.value : "";
+        
+        let basePrice = 0;
+        if (type.includes("單點")) {
+          const selectedDishes = JSON.parse(card.dataset.selectedDishes || "[]");
+          const firstValue = selectedDishes.length > 0 ? selectedDishes[0] : "";
+          basePrice = globalSetupData.singleComboPrices[firstValue] || 0;
+        } else {
+          basePrice = globalSetupData.comboTypePrices[type] || 0;
+        }
+
+        const subtotal = (basePrice + (globalSetupData.upgradePrices[upgradeName] || 0)) * qty;
+        card.querySelector('.combo-subtotal').innerText = `小計: $${subtotal}`;
+        grandTotal += subtotal;
+      });
+
+      document.querySelectorAll('.side-qty-input').forEach(input => { 
+        grandTotal += ((globalSetupData.sidePrices[input.getAttribute('data-name')] || 0) * (parseInt(input.value) || 0)); 
+      });
+      
+      document.getElementById('grandTotalDisplay').innerText = grandTotal;
+
+      syncShortcutQtysFromSide();
+
+      const submitBtns = document.querySelectorAll('.btn-submit-order');
+      submitBtns.forEach(submitBtn => {
+        if (isCurrentOrderClosed) {
+          submitBtn.disabled = true;
+          submitBtn.classList.remove('btn-primary');
+          submitBtn.classList.add('btn-secondary');
+          submitBtn.style.cursor = 'not-allowed';
+          submitBtn.innerText = submitBtn.id === 'btnSubmitOrderTop' ? "已結單\n無法修改" : "已結單 (無法修改)";
+        } else if (grandTotal <= 0) {
+          submitBtn.disabled = true;
+          submitBtn.classList.remove('btn-primary');
+          submitBtn.classList.add('btn-secondary');
+          submitBtn.style.cursor = 'not-allowed';
+          submitBtn.innerText = submitBtn.id === 'btnSubmitOrderTop' ? "送出\n訂單" : "送出訂單";
+        } else {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('btn-secondary');
+          submitBtn.classList.add('btn-primary');
+          submitBtn.style.cursor = 'pointer';
+          submitBtn.innerText = submitBtn.id === 'btnSubmitOrderTop' ? "送出\n訂單" : "送出訂單";
+        }
+      });
+    }
+
+    function getPresetsFromStorage() {
+      try {
+        return JSON.parse(localStorage.getItem('order_system_presets')) || {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function savePreset(slot) {
+      const combosPayload = [];
+      document.querySelectorAll('.combo-card').forEach(card => {
+        const checkedTypeRadio = card.querySelector('.type-radio:checked');
+        const type = checkedTypeRadio ? checkedTypeRadio.value : "單點";
+        const items = JSON.parse(card.dataset.selectedDishes || "[]");
+        const checkedUpgrade = card.querySelector('.upgrade-radio-item:checked');
+        const upgrade = checkedUpgrade ? checkedUpgrade.value : "";
+        const qty = parseInt(card.querySelector('.combo-qty-input').value) || 1;
+
+        combosPayload.push({ type, qty, upgrade, items });
+      });
+
+      const sidesData = {};
+      document.querySelectorAll('.side-qty-input').forEach(input => {
+        const qty = parseInt(input.value) || 0;
+        if (qty > 0) sidesData[input.getAttribute('data-name')] = qty;
+      });
+
+      const grandTotal = parseInt(document.getElementById('grandTotalDisplay').innerText) || 0;
+
+      let summaryParts = [];
+      combosPayload.forEach(c => {
+        let dishStr = c.items.length > 0 ? c.items.join('+') : '';
+        let str = `${c.type}${dishStr ? '(' + dishStr + ')' : ''}${c.upgrade && c.upgrade !== '無' ? '+' + c.upgrade : ''} x${c.qty}`;
+        summaryParts.push(str);
+      });
+      Object.keys(sidesData).forEach(name => {
+        summaryParts.push(`${name}x${sidesData[name]}`);
+      });
+
+      const summary = summaryParts.length > 0 ? `${summaryParts.join(' / ')} ($${grandTotal})` : `自訂組合 ${slot}`;
+
+      const presets = getPresetsFromStorage();
+      presets[slot] = {
+        summary: summary,
+        combos: combosPayload,
+        sides: sidesData,
+        total: grandTotal
+      };
+
+      localStorage.setItem('order_system_presets', JSON.stringify(presets));
+      renderPresetsUI();
+      showInlineMessage(`已儲存至熱銷組合 ${slot}！`);
+    }
+
+    function loadPreset(slot) {
+      const presets = getPresetsFromStorage();
+      const preset = presets[slot];
+      if (!preset || (!preset.combos.length && !Object.keys(preset.sides).length)) {
+        showInlineMessage(`熱銷組合 ${slot} 尚未設定，請按 [更新] 儲存當前點餐內容。`, true);
+        return;
+      }
+
+      document.getElementById('comboContainer').innerHTML = '';
+      if (preset.combos && preset.combos.length > 0) {
+        preset.combos.forEach(c => addComboCard(c));
+      } else {
+        addComboCard();
+      }
+
+      document.querySelectorAll('.side-qty-input').forEach(input => {
+        const sideName = input.getAttribute('data-name');
+        input.value = (preset.sides && preset.sides[sideName]) ? preset.sides[sideName] : 0;
+      });
+
+      calculateLiveTotal();
+      fetchRecentOrders();
+
+      if (currentEditingOrderId) {
+        showInlineMessage(`已將熱銷組合 ${slot} 套用到當前訂單 #${currentEditingOrderId.slice(-6)}！`);
+      } else {
+        showInlineMessage(`已載入熱銷組合 ${slot}`);
+      }
+    }
+
+    function renderPresetsUI() {
+      const presets = getPresetsFromStorage();
+      for (let slot = 1; slot <= 5; slot++) {
+        const btn = document.getElementById(`presetBtn${slot}`);
+        if (btn) {
+          if (presets[slot] && presets[slot].summary) {
+            btn.innerText = `${slot}. ${presets[slot].summary}`;
+          } else {
+            btn.innerText = `${slot}. (空) 點擊 [更新] 儲存當前點餐`;
+          }
+        }
+      }
+    }
+
+    async function fetchRecentOrders() {
+      if (!supabaseClient) return;
+      try {
+        const { data, error } = await supabaseClient
+          .from('orders')
+          .select('id, total_price, created_at, is_voided, is_closed, is_delivery')
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) throw error;
+        renderRecentOrdersUI(data || []);
+      } catch (err) {
+        console.warn("載入最近訂單失敗", err);
+      }
+    }
+
+    async function closeOrder(orderId) {
+      const shortId = orderId.length > 12 ? orderId.slice(-6) : orderId;
+      if (!confirm(`確定要將訂單 #${shortId} 結單嗎？`)) return;
+      toggleLoading(true, "結單處理中...");
+      try {
+        if (!supabaseClient) throw new Error("Supabase 客戶端尚未初始化。");
+        const { error } = await supabaseClient
+          .from('orders')
+          .update({ is_closed: true })
+          .eq('id', orderId);
+        if (error) throw error;
+        
+        showInlineMessage(`訂單 #${shortId} 已成功結單！`);
+        if (currentEditingOrderId === orderId) {
+          resetOrderContent();
+        } else {
+          fetchRecentOrders();
+        }
+      } catch (err) {
+        console.error(err);
+        showInlineMessage("結單失敗：" + err.message, true);
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    async function voidOrder(orderId) {
+      const shortId = orderId.length > 12 ? orderId.slice(-6) : orderId;
+      if (!confirm(`確定要將訂單 #${shortId} 作廢嗎？`)) return;
+      toggleLoading(true, "作廢處理中...");
+      try {
+        if (!supabaseClient) throw new Error("Supabase 客戶端尚未初始化。");
+        const { error } = await supabaseClient
+          .from('orders')
+          .update({ is_voided: true })
+          .eq('id', orderId);
+        if (error) throw error;
+
+        showInlineMessage(`訂單 #${shortId} 已成功作廢！`);
+        if (currentEditingOrderId === orderId) {
+          resetOrderContent();
+        } else {
+          fetchRecentOrders();
+        }
+      } catch (err) {
+        console.error(err);
+        showInlineMessage("作廢失敗：" + err.message, true);
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    function renderRecentOrdersUI(orders) {
+      const container = document.getElementById('recentOrdersContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (orders.length === 0) {
+        container.innerHTML = '<div class="text-muted text-center py-3 fs-7">尚無訂單紀錄</div>';
+        return;
+      }
+
+      const now = Date.now();
+
+      orders.forEach(order => {
+        const orderDate = new Date(order.created_at);
+        const timeStr = `${String(orderDate.getHours()).padStart(2, '0')}:${String(orderDate.getMinutes()).padStart(2, '0')}`;
+        const shortId = order.id.length > 12 ? order.id.slice(-6) : order.id;
+
+        const elapsedMins = (now - orderDate.getTime()) / (1000 * 60);
+        const isAutoClosed = elapsedMins >= 20;
+        const isLocked = order.is_voided || order.is_closed || isAutoClosed;
+
+        let statusBadge = '';
+        if (order.is_voided) {
+          statusBadge = '<span class="badge bg-danger">作廢</span>';
+        } else if (order.is_closed) {
+          statusBadge = '<span class="badge bg-secondary">結單</span>';
+        } else if (isAutoClosed) {
+          statusBadge = '<span class="badge badge-timeout" title="超過20分鐘自動結單">逾時鎖定</span>';
+        }
+
+        // 外送標籤邏輯：當 is_delivery 為 true 時顯示外送標籤
+        let deliveryBadge = order.is_delivery ? '<span class="badge bg-warning text-dark me-1" style="font-size: 0.65rem;">外送</span>' : '';
+
+        let actionBtns = '';
+        if (!isLocked) {
+          actionBtns = `
+            <button class="btn order-action-btn btn-close-order-action" onclick="event.stopPropagation(); closeOrder('${order.id}')">結單</button>
+            <button class="btn order-action-btn btn-void-order-action" onclick="event.stopPropagation(); voidOrder('${order.id}')">作廢</button>
+          `;
+        }
+
+        const isEditing = (currentEditingOrderId === order.id);
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = `p-2 mb-2 border rounded ${isEditing ? 'border-primary bg-warning-subtle shadow-sm' : 'bg-white'}`;
+        itemDiv.style.cursor = isLocked ? 'not-allowed' : 'pointer';
+
+        itemDiv.onclick = () => {
+          if (isLocked) {
+            const reason = order.is_voided ? "已作廢" : order.is_closed ? "已結單" : "已逾時鎖定";
+            showInlineMessage(`訂單 #${shortId} ${reason}，無法進入編輯模式`, true);
+            return;
+          }
+          loadOldOrder(order.id);
+        };
+
+        itemDiv.innerHTML = `
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="fw-bold text-dark fs-7">${timeStr} ${deliveryBadge}<span class="text-secondary">#${shortId}</span></span>
+            <div class="d-flex align-items-center gap-1">
+              ${statusBadge}
+              ${actionBtns}
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted fs-8">${order.id}</span>
+            <span class="fw-bold text-danger fs-7">$${order.total_price || 0}</span>
+          </div>
+        `;
+
+        container.appendChild(itemDiv);
+      });
+    }
+
+    async function loadOldOrder(targetOrderId = null) {
+      const orderId = targetOrderId || document.getElementById('queryOrderId').value.trim();
+      if (!orderId) { showInlineMessage("請輸入訂單編號", true); return; }
+      
+      document.getElementById('queryOrderId').value = orderId;
+      currentEditingOrderId = orderId;
+      toggleLoading(true, "讀取中...");
+      
+      try {
+        if (!supabaseClient) throw new Error("Supabase 客戶端尚未初始化。");
+
+        const { data: orderData, error: orderError } = await supabaseClient
+          .from('orders').select('*').eq('id', orderId).maybeSingle();
+
+        if (orderError) throw orderError;
+        if (!orderData) {
+          showInlineMessage("找不到訂單：" + orderId, true);
+          toggleLoading(false);
+          return;
+        }
+
+        const elapsedMins = (Date.now() - new Date(orderData.created_at).getTime()) / (1000 * 60);
+        const isLocked = orderData.is_voided || orderData.is_closed || elapsedMins >= 20;
+
+        if (isLocked) {
+          const reason = orderData.is_voided ? "已作廢" : orderData.is_closed ? "已結單" : "已超過20分鐘（逾時鎖定）";
+          showInlineMessage(`訂單 #${orderId.slice(-6)} ${reason}，無法進行修改`, true);
+          toggleLoading(false);
+          return;
+        }
+
+        isCurrentOrderClosed = false;
+
+        // 同步載入時的外送勾選狀態
+        const chkDelivery = document.getElementById('chkDelivery');
+        if (chkDelivery) {
+          chkDelivery.checked = !!orderData.is_delivery;
+        }
+
+        const { data: combosData, error: combosError } = await supabaseClient
+          .from('combos').select('*').eq('order_id', orderId);
+
+        if (combosError) throw combosError;
+
+        const { data: itemsData, error: itemsError } = await supabaseClient
+          .from('order_items').select('*').eq('order_id', orderId);
+
+        if (itemsError) throw itemsError;
+
+        const combos = combosData.map(c => {
+          const comboDishes = itemsData
+            .filter(item => item.combo_id === c.id)
+            .map(item => item.menu_item);
+
+          let comboType = c.combo_type || "單點";
+
+          return {
+            type: comboType,
+            qty: c.qty,
+            upgrade: c.upgrade_name || "無",
+            items: comboDishes
+          };
+        });
+
+        const sidesData = {};
+        if (globalSetupData && globalSetupData.side) {
+          globalSetupData.side.forEach(s => { sidesData[s.name] = 0; });
+        }
+        itemsData.forEach(item => {
+          if (item.combo_id === null) { sidesData[item.menu_item] = item.qty; }
+        });
+
+        document.getElementById('comboContainer').innerHTML = '';
+        if (combos.length > 0) {
+          combos.forEach(c => addComboCard(c));
+        } else if (Object.values(sidesData).every(v => v === 0)) {
+          addComboCard();
+        }
+
+        document.querySelectorAll('.side-qty-input').forEach(input => {
+          const sideName = input.getAttribute('data-name');
+          input.value = sidesData[sideName] || 0;
+        });
+
+        calculateLiveTotal();
+        fetchRecentOrders();
+        
+        document.body.classList.add('edit-mode');
+        const cancelBtn = document.getElementById('btnCancelEdit');
+        if (cancelBtn) cancelBtn.classList.remove('d-none');
+
+        showInlineMessage(`已載入訂單 #${orderId.slice(-6)}，已進入修改模式`);
+      } catch (err) {
+        console.error(err);
+        showInlineMessage("讀取失敗：" + err.message, true);
+      } finally {
+        toggleLoading(false);
+      }
+    }
+    
+    async function submitOrder() {
+      const combosPayload = [];
+      let isAnyComboIncomplete = false;
+      
+      document.querySelectorAll('.combo-card').forEach(card => {
+        const checkedTypeRadio = card.querySelector('.type-radio:checked');
+        const type = checkedTypeRadio ? checkedTypeRadio.value : "單點";
+        const items = JSON.parse(card.dataset.selectedDishes || "[]");
+        const checkedUpgrade = card.querySelector('.upgrade-radio-item:checked');
+        const upgrade = checkedUpgrade ? checkedUpgrade.value : "";
+        const limit = globalSetupData.comboLimits[type] || 1;
+
+        if (items.length === limit) {
+          combosPayload.push({
+            type: type, 
+            qty: parseInt(card.querySelector('.combo-qty-input').value) || 0, 
+            items: items, 
+            upgrade: upgrade
+          });
+        } else if (items.length > 0) {
+          isAnyComboIncomplete = true;
+        }
+      });
+
+      if (isAnyComboIncomplete) {
+        showInlineMessage("有組合餐尚未選滿主餐數量！", true);
+        return;
+      }
+
+      const sidesPayload = [];
+      document.querySelectorAll('.side-qty-input').forEach(i => {
+        const qty = parseInt(i.value) || 0;
+        if (qty > 0) {
+          sidesPayload.push({
+            name: i.getAttribute('data-name'),
+            qty: qty
+          });
+        }
+      });
+
+      if (combosPayload.length === 0 && sidesPayload.length === 0) {
+        showInlineMessage("請至少選擇一項餐點！", true);
+        return;
+      }
+  
+      const orderId = document.getElementById('queryOrderId').value.trim() || getFormattedTimestamp();
+      const grandTotal = parseInt(document.getElementById('grandTotalDisplay').innerText) || 0;
+      
+      const chkDelivery = document.getElementById('chkDelivery');
+      const isDelivery = chkDelivery ? chkDelivery.checked : false;
+  
+      toggleLoading(true, "訂單送出中...");
+  
+      try {
+        if (!supabaseClient) throw new Error("Supabase 客戶端尚未初始化。");
+
+        const { data, error } = await supabaseClient.rpc('create_or_update_order', {
+          p_order_id: orderId,
+          p_total_price: grandTotal,
+          p_combos: combosPayload,
+          p_sides: sidesPayload,
+          p_is_delivery: isDelivery
+        });
+
+        if (error) throw error;
+
+        resetOrderContent();
+        fetchRecentOrders();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        showInlineMessage(`✓ 送出成功！\n編號：${orderId}`);
+
+      } catch (err) {
+        console.error(err);
+        showInlineMessage("寫入錯誤：" + err.message, true);
+      } finally {
+        toggleLoading(false);
+      }
+    }
+  </script>
+</body>
+</html>
